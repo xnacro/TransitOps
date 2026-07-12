@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Table,
     TableBody,
@@ -12,49 +12,74 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, X } from 'lucide-react'
+import { getVehicles, createVehicle } from '@/api/vehicle.service'
+
+// Fallback mock data
+const MOCK_VEHICLES = [
+    { id: 1, registration_number: "GJO1UB4521", make: "Ford", model: "Transit", type: "Van", capacity: 500, fuel_type: "Diesel", odometer: 74000, status: "Available" },
+    { id: 2, registration_number: "GJO1UB9981", make: "Volvo", model: "FH16", type: "Truck", capacity: 5000, fuel_type: "Diesel", odometer: 182000, status: "On Trip" },
+    { id: 3, registration_number: "GJO1UB1120", make: "Suzuki", model: "Mini-03", type: "Mini", capacity: 1000, fuel_type: "Petrol", odometer: 66000, status: "In Shop" },
+    { id: 4, registration_number: "GJO1UB0071", make: "Mercedes", model: "Sprinter", type: "Van", capacity: 750, fuel_type: "Diesel", odometer: 217900, status: "Retired" },
+]
 
 export default function Vehicles() {
-    const [vehicles, setVehicles] = useState([
-        { id: "GJO1UB4521", model: "Ford Transit", type: "Van", capacity: "500 kg", odometer: "74,000", cost: "6,20,000", status: "Available" },
-        { id: "GJO1UB9981", model: "Volvo FH16", type: "Truck", capacity: "5 Ton", odometer: "182,000", cost: "24,50,000", status: "On Trip" },
-        { id: "GJO1UB1120", model: "Mini-03", type: "Mini", capacity: "1 Ton", odometer: "66,000", cost: "4,10,000", status: "In Shop" },
-        { id: "GJO1UB0071", model: "Mercedes Sprinter", type: "Van", capacity: "750 kg", odometer: "217,900", cost: "5,40,000", status: "Retired" },
-    ])
+    const [vehicles, setVehicles] = useState(MOCK_VEHICLES)
+    const [isLoading, setIsLoading] = useState(true)
 
     const [isOpen, setIsOpen] = useState(false)
     const [regNo, setRegNo] = useState("")
+    const [make, setMake] = useState("")
     const [model, setModel] = useState("")
     const [type, setType] = useState("Van")
     const [capacity, setCapacity] = useState("")
+    const [fuelType, setFuelType] = useState("Diesel")
     const [odometer, setOdometer] = useState("")
-    const [cost, setCost] = useState("")
     const [status, setStatus] = useState("Available")
 
-    const handleSave = (e) => {
-        e.preventDefault()
-        if (!regNo || !model || !type || !capacity || !odometer || !cost || !status) return
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const data = await getVehicles()
+                if (data && Array.isArray(data)) setVehicles(data)
+            } catch {
+                // Backend not available — keep mock data
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchData()
+    }, [])
 
-        const newVehicle = {
-            id: regNo.toUpperCase().trim(),
+    const handleSave = async (e) => {
+        e.preventDefault()
+        if (!regNo || !make || !model || !type || !capacity || !odometer) return
+
+        const payload = {
+            registration_number: regNo.toUpperCase().trim(),
+            make: make.trim(),
             model: model.trim(),
             type,
-            capacity: capacity.trim(),
-            odometer: Number(odometer).toLocaleString(),
-            cost: Number(cost).toLocaleString(),
+            capacity: Number(capacity),
+            fuel_type: fuelType,
+            odometer: Number(odometer),
             status
         }
 
-        setVehicles([newVehicle, ...vehicles])
-        setIsOpen(false)
+        try {
+            const created = await createVehicle(payload)
+            setVehicles([created, ...vehicles])
+        } catch {
+            // Backend not available — add locally with mock id
+            setVehicles([{ id: Date.now(), ...payload }, ...vehicles])
+        }
 
-        // Reset fields
-        setRegNo("")
-        setModel("")
-        setType("Van")
-        setCapacity("")
-        setOdometer("")
-        setCost("")
-        setStatus("Available")
+        setIsOpen(false)
+        setRegNo(""); setMake(""); setModel(""); setType("Van"); setCapacity(""); setFuelType("Diesel"); setOdometer(""); setStatus("Available")
+    }
+
+    const formatCapacity = (kg) => {
+        if (kg >= 1000) return `${(kg / 1000).toFixed(kg % 1000 === 0 ? 0 : 1)} Ton`
+        return `${kg} kg`
     }
 
     const getStatusColor = (status) => {
@@ -117,24 +142,24 @@ export default function Vehicles() {
                     <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
                             <TableHead className="text-xs">REG. NO. (UNIQUE)</TableHead>
-                            <TableHead className="text-xs">NAME/MODEL</TableHead>
+                            <TableHead className="text-xs">MAKE / MODEL</TableHead>
                             <TableHead className="text-xs">TYPE</TableHead>
                             <TableHead className="text-xs">CAPACITY</TableHead>
+                            <TableHead className="text-xs">FUEL</TableHead>
                             <TableHead className="text-xs">ODOMETER</TableHead>
-                            <TableHead className="text-xs">ACQ. COST</TableHead>
                             <TableHead className="text-xs">STATUS</TableHead>
                             <TableHead className="text-xs text-right">ACTIONS</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {vehicles.map((vehicle) => (
-                            <TableRow key={vehicle.id} className="border-border">
-                                <TableCell className="font-semibold text-sm">{vehicle.id}</TableCell>
-                                <TableCell className="text-sm">{vehicle.model}</TableCell>
+                            <TableRow key={vehicle.id || vehicle.registration_number} className="border-border">
+                                <TableCell className="font-semibold text-sm">{vehicle.registration_number}</TableCell>
+                                <TableCell className="text-sm">{vehicle.make} {vehicle.model}</TableCell>
                                 <TableCell className="text-sm">{vehicle.type}</TableCell>
-                                <TableCell className="text-sm">{vehicle.capacity}</TableCell>
-                                <TableCell className="text-sm">{vehicle.odometer}</TableCell>
-                                <TableCell className="text-sm">{vehicle.cost}</TableCell>
+                                <TableCell className="text-sm">{formatCapacity(vehicle.capacity)}</TableCell>
+                                <TableCell className="text-sm">{vehicle.fuel_type}</TableCell>
+                                <TableCell className="text-sm">{Number(vehicle.odometer).toLocaleString('en-IN')} km</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={`text-xs font-semibold ${getStatusColor(vehicle.status)}`}>
                                         {vehicle.status}
@@ -178,34 +203,62 @@ export default function Vehicles() {
                                 />
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Name/Model</label>
-                                <Input 
-                                    placeholder="e.g. Ford Transit, Volvo FH16" 
-                                    value={model} 
-                                    onChange={(e) => setModel(e.target.value)} 
-                                    className="bg-background border-border h-9 text-xs"
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Make</label>
+                                    <Input 
+                                        placeholder="e.g. Ford, Volvo" 
+                                        value={make} 
+                                        onChange={(e) => setMake(e.target.value)} 
+                                        className="bg-background border-border h-9 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Model</label>
+                                    <Input 
+                                        placeholder="e.g. Transit, FH16" 
+                                        value={model} 
+                                        onChange={(e) => setModel(e.target.value)} 
+                                        className="bg-background border-border h-9 text-xs"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle Type</label>
+                                    <Select onValueChange={setType} value={type}>
+                                        <SelectTrigger className="bg-background border-border h-9 text-xs">
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Van">Van</SelectItem>
+                                            <SelectItem value="Truck">Truck</SelectItem>
+                                            <SelectItem value="Mini">Mini</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Fuel Type</label>
+                                    <Select onValueChange={setFuelType} value={fuelType}>
+                                        <SelectTrigger className="bg-background border-border h-9 text-xs">
+                                            <SelectValue placeholder="Select fuel" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Diesel">Diesel</SelectItem>
+                                            <SelectItem value="Petrol">Petrol</SelectItem>
+                                            <SelectItem value="CNG">CNG</SelectItem>
+                                            <SelectItem value="Electric">Electric</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle Type</label>
-                                <Select onValueChange={setType} value={type}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Van">Van</SelectItem>
-                                        <SelectItem value="Truck">Truck</SelectItem>
-                                        <SelectItem value="Mini">Mini</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Capacity</label>
+                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Capacity (kg)</label>
                                 <Input 
-                                    placeholder="e.g. 500 kg, 5 Ton" 
+                                    type="number"
+                                    placeholder="e.g. 500, 5000" 
                                     value={capacity} 
                                     onChange={(e) => setCapacity(e.target.value)} 
                                     className="bg-background border-border h-9 text-xs"
@@ -221,32 +274,6 @@ export default function Vehicles() {
                                     onChange={(e) => setOdometer(e.target.value)} 
                                     className="bg-background border-border h-9 text-xs"
                                 />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Acquisition Cost ($)</label>
-                                <Input 
-                                    type="number"
-                                    placeholder="e.g. 620000" 
-                                    value={cost} 
-                                    onChange={(e) => setCost(e.target.value)} 
-                                    className="bg-background border-border h-9 text-xs"
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-                                <Select onValueChange={setStatus} value={status}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Available">Available</SelectItem>
-                                        <SelectItem value="On Trip">On Trip</SelectItem>
-                                        <SelectItem value="In Shop">In Shop</SelectItem>
-                                        <SelectItem value="Retired">Retired</SelectItem>
-                                    </SelectContent>
-                                </Select>
                             </div>
 
                             <Button 

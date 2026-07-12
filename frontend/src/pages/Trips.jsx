@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Table,
     TableBody,
@@ -12,40 +12,63 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, X } from 'lucide-react'
+import { getTrips, createTrip } from '@/api/trip.service'
+
+const MOCK_TRIPS = [
+    { id: 1, source: "Gandhinagar Depot", destination: "Warehouse A", vehicle_id: 1, driver_id: 1, vehicle_reg: "GJO1UB4521", driver_name: "Alex Johnson", cargo_weight: 400, planned_distance: 120, status: "Completed" },
+    { id: 2, source: "Gandhinagar Depot", destination: "Port Terminal", vehicle_id: 2, driver_id: 2, vehicle_reg: "GJO1UB9981", driver_name: "Maria Garcia", cargo_weight: 3500, planned_distance: 85, status: "Dispatched" },
+    { id: 3, source: "Gandhinagar Depot", destination: "City Center", vehicle_id: 3, driver_id: 4, vehicle_reg: "GJO1UB1120", driver_name: "Linda Chen", cargo_weight: 200, planned_distance: 45, status: "Draft" },
+]
 
 export default function Trips() {
-    const [trips, setTrips] = useState([
-        { id: "TRP-101", destination: "Warehouse A", vehicle: "Van-05", driver: "Alex Johnson", status: "Completed" },
-        { id: "TRP-102", destination: "Port Terminal", vehicle: "Trk-12", driver: "Maria Garcia", status: "Dispatched" },
-        { id: "TRP-103", destination: "City Center", vehicle: "Van-02", driver: "Linda Chen", status: "Draft" },
-    ])
+    const [trips, setTrips] = useState(MOCK_TRIPS)
+    const [isLoading, setIsLoading] = useState(true)
 
     const [isOpen, setIsOpen] = useState(false)
+    const [source, setSource] = useState("Gandhinagar Depot")
     const [destination, setDestination] = useState("")
-    const [vehicle, setVehicle] = useState("Van-05")
-    const [driver, setDriver] = useState("Alex Johnson")
-    const [status, setStatus] = useState("Draft")
+    const [vehicleId, setVehicleId] = useState("")
+    const [driverId, setDriverId] = useState("")
+    const [cargoWeight, setCargoWeight] = useState("")
+    const [plannedDistance, setPlannedDistance] = useState("")
 
-    const handleSave = (e) => {
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const data = await getTrips()
+                if (data && Array.isArray(data)) setTrips(data)
+            } catch {
+                // Backend not available — keep mock data
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchData()
+    }, [])
+
+    const handleSave = async (e) => {
         e.preventDefault()
-        if (!destination || !vehicle || !driver || !status) return
+        if (!source || !destination || !cargoWeight || !plannedDistance) return
 
-        const newTrip = {
-            id: `TRP-10${trips.length + 1}`,
+        const payload = {
+            source: source.trim(),
             destination: destination.trim(),
-            vehicle,
-            driver,
-            status
+            vehicle_id: vehicleId ? Number(vehicleId) : null,
+            driver_id: driverId ? Number(driverId) : null,
+            cargo_weight: Number(cargoWeight),
+            planned_distance: Number(plannedDistance),
+            status: "Draft"
         }
 
-        setTrips([newTrip, ...trips])
-        setIsOpen(false)
+        try {
+            const created = await createTrip(payload)
+            setTrips([created, ...trips])
+        } catch {
+            setTrips([{ id: Date.now(), ...payload, vehicle_reg: "—", driver_name: "—" }, ...trips])
+        }
 
-        // Reset fields
-        setDestination("")
-        setVehicle("Van-05")
-        setDriver("Alex Johnson")
-        setStatus("Draft")
+        setIsOpen(false)
+        setSource("Gandhinagar Depot"); setDestination(""); setVehicleId(""); setDriverId(""); setCargoWeight(""); setPlannedDistance("")
     }
 
     const getStatusColor = (status) => {
@@ -95,21 +118,27 @@ export default function Trips() {
                 <Table>
                     <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-xs">Trip ID</TableHead>
-                            <TableHead className="text-xs">Destination</TableHead>
-                            <TableHead className="text-xs">Vehicle</TableHead>
-                            <TableHead className="text-xs">Driver</TableHead>
-                            <TableHead className="text-xs">Status</TableHead>
-                            <TableHead className="text-xs text-right">Actions</TableHead>
+                            <TableHead className="text-xs">ID</TableHead>
+                            <TableHead className="text-xs">SOURCE</TableHead>
+                            <TableHead className="text-xs">DESTINATION</TableHead>
+                            <TableHead className="text-xs">VEHICLE</TableHead>
+                            <TableHead className="text-xs">DRIVER</TableHead>
+                            <TableHead className="text-xs">CARGO (kg)</TableHead>
+                            <TableHead className="text-xs">DISTANCE (km)</TableHead>
+                            <TableHead className="text-xs">STATUS</TableHead>
+                            <TableHead className="text-xs text-right">ACTIONS</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {trips.map((trip) => (
                             <TableRow key={trip.id} className="border-border">
-                                <TableCell className="font-semibold text-sm">{trip.id}</TableCell>
+                                <TableCell className="font-semibold text-sm">TRP-{String(trip.id).padStart(3, '0')}</TableCell>
+                                <TableCell className="text-sm">{trip.source}</TableCell>
                                 <TableCell className="text-sm font-semibold">{trip.destination}</TableCell>
-                                <TableCell className="text-sm">{trip.vehicle}</TableCell>
-                                <TableCell className="text-sm">{trip.driver}</TableCell>
+                                <TableCell className="text-sm">{trip.vehicle_reg || `V-${trip.vehicle_id}`}</TableCell>
+                                <TableCell className="text-sm">{trip.driver_name || `D-${trip.driver_id}`}</TableCell>
+                                <TableCell className="text-sm">{trip.cargo_weight ? Number(trip.cargo_weight).toLocaleString('en-IN') : '—'}</TableCell>
+                                <TableCell className="text-sm">{trip.planned_distance || '—'}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={`text-xs font-semibold ${getStatusColor(trip.status)}`}>
                                         {trip.status}
@@ -130,79 +159,38 @@ export default function Trips() {
             {isOpen && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-center items-center p-4">
                     <div className="bg-card border border-border p-6 rounded-xl w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                        {/* Modal Header */}
                         <div className="flex items-center justify-between border-b border-border pb-3">
                             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Create New Trip</h3>
-                            <button 
-                                onClick={() => setIsOpen(false)}
-                                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                            >
+                            <button onClick={() => setIsOpen(false)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
 
-                        {/* Modal Form */}
                         <form onSubmit={handleSave} className="space-y-4 pt-2">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Destination</label>
-                                <Input 
-                                    placeholder="e.g. Warehouse B, Port Terminal" 
-                                    value={destination} 
-                                    onChange={(e) => setDestination(e.target.value)} 
-                                    className="bg-background border-border h-9 text-xs"
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Source</label>
+                                    <Input placeholder="e.g. Gandhinagar Depot" value={source} onChange={(e) => setSource(e.target.value)} className="bg-background border-border h-9 text-xs" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Destination</label>
+                                    <Input placeholder="e.g. Warehouse A" value={destination} onChange={(e) => setDestination(e.target.value)} className="bg-background border-border h-9 text-xs" />
+                                </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle Assign</label>
-                                <Select onValueChange={setVehicle} value={vehicle}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select vehicle" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Van-05">Van-05</SelectItem>
-                                        <SelectItem value="Trk-12">Trk-12</SelectItem>
-                                        <SelectItem value="Van-02">Van-02</SelectItem>
-                                        <SelectItem value="Trk-08">Trk-08</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cargo Weight (kg)</label>
+                                    <Input type="number" placeholder="e.g. 500" value={cargoWeight} onChange={(e) => setCargoWeight(e.target.value)} className="bg-background border-border h-9 text-xs" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Planned Distance (km)</label>
+                                    <Input type="number" placeholder="e.g. 120" value={plannedDistance} onChange={(e) => setPlannedDistance(e.target.value)} className="bg-background border-border h-9 text-xs" />
+                                </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Driver Assign</label>
-                                <Select onValueChange={setDriver} value={driver}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select driver" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Alex Johnson">Alex Johnson</SelectItem>
-                                        <SelectItem value="Maria Garcia">Maria Garcia</SelectItem>
-                                        <SelectItem value="Linda Chen">Linda Chen</SelectItem>
-                                        <SelectItem value="James Smith">James Smith</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Initial Status</label>
-                                <Select onValueChange={setStatus} value={status}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Draft">Draft</SelectItem>
-                                        <SelectItem value="Dispatched">Dispatched</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <Button 
-                                type="submit" 
-                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg transition-colors text-xs cursor-pointer mt-4"
-                            >
-                                Dispatch / Save Trip
+                            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg transition-colors text-xs cursor-pointer mt-4">
+                                Save as Draft
                             </Button>
                         </form>
                     </div>
