@@ -76,8 +76,9 @@ export default function Trips() {
             setTrips([created, ...trips])
             setIsOpen(false)
             setSource("Gandhinagar Depot"); setDestination(""); setVehicleId(""); setDriverId(""); setCargoWeight(""); setPlannedDistance("")
-        } catch {
-            alert("Failed to save trip. Make sure the vehicle and driver IDs exist.")
+        } catch (error) {
+            const serverMessage = error.response?.data?.message || error.message;
+            alert(`Failed to save trip: ${serverMessage}`)
         }
     }
 
@@ -196,11 +197,16 @@ export default function Trips() {
                                             <SelectValue placeholder="Select vehicle" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {vehicles.map((v) => (
-                                                <SelectItem key={v.id} value={String(v.id)}>
-                                                    {v.registration_number}
-                                                </SelectItem>
-                                            ))}
+                                            {vehicles.map((v) => {
+                                                const label = v.status !== 'Available' 
+                                                    ? `${v.registration_number} (${v.status})` 
+                                                    : v.registration_number;
+                                                return (
+                                                    <SelectItem key={v.id} value={String(v.id)}>
+                                                        {label}
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -211,11 +217,16 @@ export default function Trips() {
                                             <SelectValue placeholder="Select driver" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {drivers.map((d) => (
-                                                <SelectItem key={d.id} value={String(d.id)}>
-                                                    {d.name}
-                                                </SelectItem>
-                                            ))}
+                                            {drivers.map((d) => {
+                                                const isExpired = new Date(d.license_expiry) < new Date();
+                                                const statusText = d.status !== 'Available' ? d.status : (isExpired ? 'License Expired' : '');
+                                                const label = statusText ? `${d.name} (${statusText})` : d.name;
+                                                return (
+                                                    <SelectItem key={d.id} value={String(d.id)}>
+                                                        {label}
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>
