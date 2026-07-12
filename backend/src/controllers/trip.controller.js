@@ -3,6 +3,7 @@ import TripService from "../services/trip.service.js";
 import { validateTrip, validateTripComplete } from "../validators/trip.validator.js";
 
 class TripController {
+
     static async create(req, res) {
         try {
             const errors = validateTrip(req.body);
@@ -14,6 +15,7 @@ class TripController {
             return res.status(error.status || 500).json({ success: false, message: error.message || "Internal server error", errors: [] });
         }
     }
+
     static async findAll(req, res) {
         try {
             const trips = await Trip.findAll();
@@ -66,6 +68,7 @@ class TripController {
             return res.status(error.status || 500).json({ success: false, message: error.message || "Internal server error", errors: [] });
         }
     }
+
     static async cancel(req, res) {
         try {
             const trip = await TripService.cancel(req.params.id);
@@ -75,4 +78,5 @@ class TripController {
         }
     }
 }
+
 export default TripController;
