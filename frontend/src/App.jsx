@@ -91,7 +91,7 @@ function App() {
 
   if (booting) {
     return (
-      <ThemeProvider defaultTheme="dark" storageKey="transitops-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="transitops-ui-theme">
         <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
           <div className="text-center space-y-3">
             <i className="fa-solid fa-spinner fa-spin text-primary text-3xl"></i>
@@ -103,7 +103,7 @@ function App() {
   }
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="transitops-ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="transitops-ui-theme">
       {!user ? (
         <Login onLogin={handleLogin} />
       ) : (
