@@ -1,17 +1,35 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import pool from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
+import vehicleRoutes from "./src/routes/vehicle.routes.js";
+import driverRoutes from "./src/routes/driver.routes.js";
+import tripRoutes from "./src/routes/trip.routes.js";
+import maintenanceRoutes from "./src/routes/maintenance.routes.js";
+import fuelLogRoutes from "./src/routes/fuellog.routes.js";
+import expenseRoutes from "./src/routes/expense.routes.js";
+import dashboardRoutes from "./src/routes/dashboard.routes.js";
+import reportRoutes from "./src/routes/report.routes.js";
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/trips", tripRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/fuel-logs", fuelLogRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.get("/", (req, res) => {
     res.send("Hello World! from TransitOps Backend");
