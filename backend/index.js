@@ -11,6 +11,7 @@ import fuelLogRoutes from "./src/routes/fuellog.routes.js";
 import expenseRoutes from "./src/routes/expense.routes.js";
 import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import reportRoutes from "./src/routes/report.routes.js";
+import chatRoutes from "./src/routes/chat.routes.js";
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/api/fuel-logs", fuelLogRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/", (req, res) => {
     res.send("Hello World! from TransitOps Backend");

@@ -10,7 +10,9 @@ import { getDrivers } from '@/api/driver.service'
 function Skeleton({ className }) { return <div className={`skeleton ${className}`}></div> }
 
 export default function Trips() {
-    const [trips, setTrips] = useState([]); const [vehicles, setVehicles] = useState([]); const [drivers, setDrivers] = useState([])
+    const [trips, setTrips] = useState([]);
+    const [vehicles, setVehicles] = useState([]);
+    const [drivers, setDrivers] = useState([]);
     const [loading, setLoading] = useState(true); const [isOpen, setIsOpen] = useState(false)
     const [source, setSource] = useState("Gandhinagar Depot"); const [destination, setDestination] = useState("")
     const [vehicleId, setVehicleId] = useState(""); const [driverId, setDriverId] = useState("")
