@@ -1,344 +1,216 @@
 import React, { useState, useEffect } from 'react'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, X, Calculator } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getFuelLogs, createFuelLog } from '@/api/fuellog.service'
 import { getExpenses, createExpense } from '@/api/expense.service'
 import { getVehicles } from '@/api/vehicle.service'
 
-const formatINR = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
-}
+const formatINR = (a) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(a)
+function Skeleton({ className }) { return <div className={`skeleton ${className}`}></div> }
 
 export default function Fuel() {
-    const [fuelLogs, setFuelLogs] = useState([])
-    const [expenses, setExpenses] = useState([])
-    const [vehicles, setVehicles] = useState([])
-    const [isLoading, setIsLoading] = useState(true)
+    const [fuelLogs, setFuelLogs] = useState([]); const [expenses, setExpenses] = useState([]); const [vehicles, setVehicles] = useState([])
+    const [loading, setLoading] = useState(true); const [isFuelOpen, setIsFuelOpen] = useState(false); const [isExpOpen, setIsExpOpen] = useState(false)
+    // Fuel form — vehicle_id as dropdown
+    const [fuelVehicleId, setFuelVehicleId] = useState(""); const [fuelDate, setFuelDate] = useState(""); const [fuelLiters, setFuelLiters] = useState("")
+    const [fuelCost, setFuelCost] = useState(""); const [fuelStation, setFuelStation] = useState("")
+    const [fuelSaving, setFuelSaving] = useState(false); const [fuelError, setFuelError] = useState(null)
+    // Expense form
+    const [expVehicleId, setExpVehicleId] = useState(""); const [expCategory, setExpCategory] = useState("Toll")
+    const [expDesc, setExpDesc] = useState(""); const [expAmount, setExpAmount] = useState(""); const [expDate, setExpDate] = useState("")
+    const [expSaving, setExpSaving] = useState(false); const [expError, setExpError] = useState(null)
 
-    const [isFuelOpen, setIsFuelOpen] = useState(false)
-    const [isExpenseOpen, setIsExpenseOpen] = useState(false)
+    const totalFuel = fuelLogs.reduce((s, i) => s + Number(i.fuel_cost || 0), 0)
+    const totalExp = expenses.reduce((s, i) => s + Number(i.amount || 0), 0)
 
-    // Fuel form states
-    const [fuelVehicle, setFuelVehicle] = useState("")
-    const [fuelDate, setFuelDate] = useState("")
-    const [fuelLiters, setFuelLiters] = useState("")
-    const [fuelCost, setFuelCost] = useState("")
-    const [fuelStation, setFuelStation] = useState("")
-
-    // Expense form states
-    const [expVehicle, setExpVehicle] = useState("")
-    const [expCategory, setExpCategory] = useState("Toll")
-    const [expDescription, setExpDescription] = useState("")
-    const [expAmount, setExpAmount] = useState("")
-    const [expDate, setExpDate] = useState("")
-
-    // Totals
-    const totalFuelCost = fuelLogs.reduce((sum, item) => sum + Number(item.fuel_cost), 0)
-    const totalExpenseCost = expenses.reduce((sum, item) => sum + Number(item.amount), 0)
-    const totalOperationalCost = totalFuelCost + totalExpenseCost
+    const chartData = fuelLogs.slice(0, 12).map((log, i) => ({
+        name: log.date ? log.date.substring(5) : `#${i + 1}`, fuel: Number(log.fuel_cost) || 0
+    })).reverse()
 
     useEffect(() => {
-        const fetchData = async () => {
+        (async () => {
             try {
-                const [fuelData, expenseData, vehiclesData] = await Promise.allSettled([
-                    getFuelLogs(),
-                    getExpenses(),
-                    getVehicles()
-                ])
-                if (fuelData.status === 'fulfilled' && Array.isArray(fuelData.value)) setFuelLogs(fuelData.value)
-                if (expenseData.status === 'fulfilled' && Array.isArray(expenseData.value)) setExpenses(expenseData.value)
-                if (vehiclesData.status === 'fulfilled' && Array.isArray(vehiclesData.value)) {
-                    setVehicles(vehiclesData.value)
-                    if (vehiclesData.value.length > 0) {
-                        const firstReg = vehiclesData.value[0].registration_number
-                        setFuelVehicle(firstReg)
-                        setExpVehicle(firstReg)
-                    }
-                }
-            } catch {
-                console.error("Failed to fetch fuel/expense data")
-            } finally {
-                setIsLoading(false)
-            }
-        }
-        fetchData()
+                const [f, e, v] = await Promise.allSettled([getFuelLogs(), getExpenses(), getVehicles()])
+                if (f.status === 'fulfilled' && Array.isArray(f.value)) setFuelLogs(f.value)
+                if (e.status === 'fulfilled' && Array.isArray(e.value)) setExpenses(e.value)
+                if (v.status === 'fulfilled' && Array.isArray(v.value)) setVehicles(v.value)
+            } catch {} finally { setLoading(false) }
+        })()
     }, [])
 
     const handleFuelSave = async (e) => {
-        e.preventDefault()
-        if (!fuelVehicle || !fuelDate || !fuelLiters || !fuelCost) return
-
-        const selectedVehicle = vehicles.find(v => v.registration_number === fuelVehicle)
-        const payload = { 
-            vehicle_id: selectedVehicle ? selectedVehicle.id : null,
-            vehicle_reg: fuelVehicle, 
-            date: fuelDate, 
-            liters: Number(fuelLiters), 
-            fuel_cost: Number(fuelCost), 
-            fuel_station: fuelStation.trim() 
-        }
-
+        e.preventDefault(); setFuelError(null)
+        if (!fuelVehicleId || !fuelLiters || !fuelCost || !fuelStation) { setFuelError("Vehicle, litres, cost, and station are required."); return }
+        setFuelSaving(true)
         try {
-            const created = await createFuelLog(payload)
-            setFuelLogs([created, ...fuelLogs])
-            setIsFuelOpen(false)
-            setFuelDate(""); setFuelLiters(""); setFuelCost(""); setFuelStation("")
-            if (vehicles.length > 0) {
-                setFuelVehicle(vehicles[0].registration_number)
-            } else {
-                setFuelVehicle("")
-            }
-        } catch {
-            alert("Failed to save fuel log. Please check vehicle registration.")
-        }
+            const created = await createFuelLog({ vehicle_id: Number(fuelVehicleId), liters: Number(fuelLiters), fuel_cost: Number(fuelCost), fuel_station: fuelStation.trim(), date: fuelDate || undefined })
+            setFuelLogs([created, ...fuelLogs]); setIsFuelOpen(false)
+            setFuelVehicleId(""); setFuelDate(""); setFuelLiters(""); setFuelCost(""); setFuelStation(""); setFuelError(null)
+        } catch (err) { setFuelError(err.response?.data?.message || err.response?.data?.errors?.join(', ') || "Failed to save fuel log.") }
+        finally { setFuelSaving(false) }
     }
 
-    const handleExpenseSave = async (e) => {
-        e.preventDefault()
-        if (!expVehicle || !expCategory || !expAmount || !expDate) return
-
-        const selectedVehicle = vehicles.find(v => v.registration_number === expVehicle)
-        const payload = { 
-            vehicle_id: selectedVehicle ? selectedVehicle.id : null,
-            vehicle_reg: expVehicle, 
-            category: expCategory, 
-            description: expDescription.trim(), 
-            amount: Number(expAmount), 
-            date: expDate 
-        }
-
+    const handleExpSave = async (e) => {
+        e.preventDefault(); setExpError(null)
+        if (!expVehicleId || !expCategory || !expAmount) { setExpError("Vehicle, category, and amount are required."); return }
+        setExpSaving(true)
         try {
-            const created = await createExpense(payload)
-            setExpenses([created, ...expenses])
-            setIsExpenseOpen(false)
-            setExpCategory("Toll"); setExpDescription(""); setExpAmount(""); setExpDate("")
-            if (vehicles.length > 0) {
-                setExpVehicle(vehicles[0].registration_number)
-            } else {
-                setExpVehicle("")
-            }
-        } catch {
-            alert("Failed to save expense. Please check vehicle registration.")
-        }
+            const created = await createExpense({ vehicle_id: Number(expVehicleId), category: expCategory, description: expDesc.trim(), amount: Number(expAmount), date: expDate || undefined })
+            setExpenses([created, ...expenses]); setIsExpOpen(false)
+            setExpVehicleId(""); setExpCategory("Toll"); setExpDesc(""); setExpAmount(""); setExpDate(""); setExpError(null)
+        } catch (err) { setExpError(err.response?.data?.message || err.response?.data?.errors?.join(', ') || "Failed to save expense.") }
+        finally { setExpSaving(false) }
     }
 
     return (
-        <div className="space-y-6 flex flex-col h-full relative">
-            {/* Filters Row */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Select defaultValue="all-vehicles">
-                        <SelectTrigger className="w-[180px] h-9 text-xs bg-card border-border">
-                            <SelectValue placeholder="Vehicle: All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all-vehicles">Vehicle: All</SelectItem>
-                            {vehicles.map((v) => (
-                                <SelectItem key={v.id} value={v.registration_number}>
-                                    {v.registration_number}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+        <div className="space-y-5">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                    { label: 'Total Fuel Cost', value: formatINR(totalFuel), icon: 'fa-gas-pump', color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                    { label: 'Total Expenses', value: formatINR(totalExp), icon: 'fa-receipt', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                    { label: 'Grand Total', value: formatINR(totalFuel + totalExp), icon: 'fa-calculator', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+                ].map((c, i) => (
+                    <div key={i} className={`glass-card rounded-xl p-5 hover-lift cursor-default border ${c.border}`}>
+                        <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}><i className={`fa-solid ${c.icon} ${c.color} text-lg`}></i></div>
+                            <div><p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{c.label}</p><p className="text-2xl font-extrabold text-foreground">{c.value}</p></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
-                    <div className="relative w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search logs..." className="pl-9 bg-card border-border h-9 text-xs" />
+            {/* Chart */}
+            {chartData.length > 0 && (
+                <div className="glass-card rounded-xl p-5">
+                    <div className="flex items-center gap-2.5 mb-5">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center"><i className="fa-solid fa-chart-column text-primary"></i></div>
+                        <div><h3 className="text-lg font-bold text-foreground">Fuel Cost Trend</h3><p className="text-xs text-muted-foreground">Recent fuel costs</p></div>
+                    </div>
+                    <div className="h-[220px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -15, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '13px' }} />
+                                <Bar dataKey="fuel" fill="var(--primary)" radius={[6, 6, 0, 0]} name="Cost (₹)" />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
+            )}
 
-                <div className="flex items-center gap-2">
-                    <Button onClick={() => setIsFuelOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 h-9 text-xs cursor-pointer">
-                        <Plus className="h-4 w-4" /> Log Fuel
-                    </Button>
-                    <Button onClick={() => setIsExpenseOpen(true)} variant="outline" className="font-semibold gap-2 h-9 text-xs cursor-pointer border-border">
-                        <Plus className="h-4 w-4" /> Add Expense
-                    </Button>
-                </div>
+            {/* Actions */}
+            <div className="flex gap-2">
+                <Button onClick={() => { setFuelError(null); setIsFuelOpen(true) }} className="h-10 rounded-xl btn-gradient text-sm cursor-pointer gap-2 px-5"><i className="fa-solid fa-plus"></i> Log Fuel</Button>
+                <Button onClick={() => { setExpError(null); setIsExpOpen(true) }} variant="outline" className="h-10 rounded-xl text-sm cursor-pointer gap-2 px-5 border-border"><i className="fa-solid fa-plus"></i> Add Expense</Button>
             </div>
 
             {/* Fuel Logs Table */}
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-border">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Fuel Logs</h3>
-                </div>
+            <div className="glass-card rounded-xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center gap-2"><i className="fa-solid fa-gas-pump text-primary"></i><span className="text-base font-bold text-foreground">Fuel Logs</span></div>
                 <Table>
-                    <TableHeader>
-                        <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-xs">VEHICLE</TableHead>
-                            <TableHead className="text-xs">DATE</TableHead>
-                            <TableHead className="text-xs">LITRES</TableHead>
-                            <TableHead className="text-xs">COST</TableHead>
-                            <TableHead className="text-xs">STATION</TableHead>
-                        </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow className="border-border hover:bg-transparent bg-muted/30">
+                        {['Vehicle', 'Date', 'Litres', 'Cost', 'Station'].map((h, i) => <TableHead key={i} className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">{h}</TableHead>)}
+                    </TableRow></TableHeader>
                     <TableBody>
-                        {fuelLogs.map((log) => (
-                            <TableRow key={log.id} className="border-border">
-                                <TableCell className="font-semibold text-sm">{log.vehicle_reg || `V-${log.vehicle_id}`}</TableCell>
-                                <TableCell className="text-sm">{log.date}</TableCell>
-                                <TableCell className="text-sm">{log.liters} L</TableCell>
-                                <TableCell className="text-sm">{formatINR(log.fuel_cost)}</TableCell>
-                                <TableCell className="text-sm text-muted-foreground">{log.fuel_station || '—'}</TableCell>
+                        {loading ? Array.from({ length: 3 }).map((_, i) => <TableRow key={i} className="border-border">{Array.from({ length: 5 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>)
+                        : fuelLogs.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground"><i className="fa-solid fa-gas-pump text-3xl opacity-15 mb-2 block"></i>No fuel logs</TableCell></TableRow>
+                        : fuelLogs.map(l => (
+                            <TableRow key={l.id} className="border-border hover:bg-secondary/30 transition-colors">
+                                <TableCell className="font-bold font-mono">{l.vehicle_reg || `V-${l.vehicle_id}`}</TableCell>
+                                <TableCell className="text-muted-foreground">{l.date || '—'}</TableCell>
+                                <TableCell className="text-muted-foreground font-mono">{l.liters} L</TableCell>
+                                <TableCell className="font-medium">{formatINR(l.fuel_cost)}</TableCell>
+                                <TableCell className="text-muted-foreground">{l.fuel_station || '—'}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
 
-            {/* Other Expenses Table */}
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-border">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Other Expenses</h3>
-                </div>
+            {/* Expenses Table */}
+            <div className="glass-card rounded-xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center gap-2"><i className="fa-solid fa-receipt text-accent"></i><span className="text-base font-bold text-foreground">Other Expenses</span></div>
                 <Table>
-                    <TableHeader>
-                        <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-xs">VEHICLE</TableHead>
-                            <TableHead className="text-xs">CATEGORY</TableHead>
-                            <TableHead className="text-xs">DESCRIPTION</TableHead>
-                            <TableHead className="text-xs">AMOUNT</TableHead>
-                            <TableHead className="text-xs">DATE</TableHead>
-                        </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow className="border-border hover:bg-transparent bg-muted/30">
+                        {['Vehicle', 'Category', 'Description', 'Amount', 'Date'].map((h, i) => <TableHead key={i} className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">{h}</TableHead>)}
+                    </TableRow></TableHeader>
                     <TableBody>
-                        {expenses.map((exp) => (
-                            <TableRow key={exp.id} className="border-border">
-                                <TableCell className="font-semibold text-sm">{exp.vehicle_reg || `V-${exp.vehicle_id}`}</TableCell>
-                                <TableCell className="text-sm">{exp.category}</TableCell>
-                                <TableCell className="text-sm text-muted-foreground">{exp.description || '—'}</TableCell>
-                                <TableCell className="text-sm">{formatINR(exp.amount)}</TableCell>
-                                <TableCell className="text-sm">{exp.date}</TableCell>
+                        {loading ? Array.from({ length: 3 }).map((_, i) => <TableRow key={i} className="border-border">{Array.from({ length: 5 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>)
+                        : expenses.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground"><i className="fa-solid fa-receipt text-3xl opacity-15 mb-2 block"></i>No expenses</TableCell></TableRow>
+                        : expenses.map(exp => (
+                            <TableRow key={exp.id} className="border-border hover:bg-secondary/30 transition-colors">
+                                <TableCell className="font-bold font-mono">{exp.vehicle_reg || `V-${exp.vehicle_id}`}</TableCell>
+                                <TableCell className="text-muted-foreground">{exp.category}</TableCell>
+                                <TableCell className="text-muted-foreground">{exp.description || '—'}</TableCell>
+                                <TableCell className="font-medium">{formatINR(exp.amount)}</TableCell>
+                                <TableCell className="text-muted-foreground">{exp.date || '—'}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
 
-            {/* Total Operational Cost */}
-            <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Calculator className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Total Operational Cost (Auto)</span>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                    <span className="text-muted-foreground">Fuel: <span className="font-semibold text-foreground">{formatINR(totalFuelCost)}</span></span>
-                    <span className="text-muted-foreground">Expenses: <span className="font-semibold text-foreground">{formatINR(totalExpenseCost)}</span></span>
-                    <span className="text-amber-500 font-bold text-base">{formatINR(totalOperationalCost)}</span>
-                </div>
-            </div>
-
-            {/* Fuel Log Modal */}
+            {/* Fuel Modal */}
             {isFuelOpen && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-center items-center p-4">
-                    <div className="bg-card border border-border p-6 rounded-xl w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Log Fuel Entry</h3>
-                            <button onClick={() => setIsFuelOpen(false)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"><X className="h-4 w-4" /></button>
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setIsFuelOpen(false) }}>
+                    <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-bold text-foreground flex items-center gap-2"><i className="fa-solid fa-gas-pump text-primary"></i> Log Fuel</h3>
+                            <button onClick={() => setIsFuelOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary cursor-pointer"><i className="fa-solid fa-xmark"></i></button>
                         </div>
-                        <form onSubmit={handleFuelSave} className="space-y-4 pt-2">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</label>
-                                <Select onValueChange={setFuelVehicle} value={fuelVehicle}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
-                                    <SelectContent>
-                                        {vehicles.map((v) => (
-                                            <SelectItem key={v.id} value={v.registration_number}>
-                                                {v.registration_number}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        {fuelError && <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2"><i className="fa-solid fa-circle-exclamation"></i>{fuelError}</div>}
+                        <form onSubmit={handleFuelSave} className="space-y-3.5">
+                            <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Vehicle *</label>
+                                <Select onValueChange={setFuelVehicleId} value={fuelVehicleId}><SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                                    <SelectContent>{vehicles.map(v => <SelectItem key={v.id} value={String(v.id)}>{v.registration_number}</SelectItem>)}</SelectContent></Select></div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Litres *</label><Input type="number" placeholder="42" value={fuelLiters} onChange={(e) => setFuelLiters(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Cost (₹) *</label><Input type="number" placeholder="3150" value={fuelCost} onChange={(e) => setFuelCost(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Litres</label>
-                                    <Input type="number" placeholder="e.g. 42" value={fuelLiters} onChange={(e) => setFuelLiters(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cost (₹)</label>
-                                    <Input type="number" placeholder="e.g. 3150" value={fuelCost} onChange={(e) => setFuelCost(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Station *</label><Input placeholder="HP Pump" value={fuelStation} onChange={(e) => setFuelStation(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Date</label><Input type="date" value={fuelDate} onChange={(e) => setFuelDate(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Station</label>
-                                    <Input placeholder="e.g. HP Petrol Pump" value={fuelStation} onChange={(e) => setFuelStation(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
-                                    <Input type="date" value={fuelDate} onChange={(e) => setFuelDate(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                            </div>
-                            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg text-xs cursor-pointer mt-4">Save Fuel Log</Button>
+                            <Button type="submit" disabled={fuelSaving} className="w-full h-11 rounded-xl btn-gradient cursor-pointer mt-2 disabled:opacity-50 text-sm">
+                                {fuelSaving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fa-solid fa-floppy-disk mr-2"></i>Save</>}
+                            </Button>
                         </form>
                     </div>
                 </div>
             )}
 
             {/* Expense Modal */}
-            {isExpenseOpen && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-center items-center p-4">
-                    <div className="bg-card border border-border p-6 rounded-xl w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Add Expense</h3>
-                            <button onClick={() => setIsExpenseOpen(false)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"><X className="h-4 w-4" /></button>
+            {isExpOpen && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setIsExpOpen(false) }}>
+                    <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-bold text-foreground flex items-center gap-2"><i className="fa-solid fa-receipt text-accent"></i> Add Expense</h3>
+                            <button onClick={() => setIsExpOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary cursor-pointer"><i className="fa-solid fa-xmark"></i></button>
                         </div>
-                        <form onSubmit={handleExpenseSave} className="space-y-4 pt-2">
+                        {expError && <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2"><i className="fa-solid fa-circle-exclamation"></i>{expError}</div>}
+                        <form onSubmit={handleExpSave} className="space-y-3.5">
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</label>
-                                    <Select onValueChange={setExpVehicle} value={expVehicle}>
-                                        <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
-                                        <SelectContent>
-                                            {vehicles.map((v) => (
-                                                <SelectItem key={v.id} value={v.registration_number}>
-                                                    {v.registration_number}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Category</label>
-                                    <Select onValueChange={setExpCategory} value={expCategory}>
-                                        <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Toll">Toll</SelectItem>
-                                            <SelectItem value="Parking">Parking</SelectItem>
-                                            <SelectItem value="Insurance">Insurance</SelectItem>
-                                            <SelectItem value="Repair">Repair</SelectItem>
-                                            <SelectItem value="Maintenance">Maintenance</SelectItem>
-                                            <SelectItem value="Other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Vehicle *</label>
+                                    <Select onValueChange={setExpVehicleId} value={expVehicleId}><SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                                        <SelectContent>{vehicles.map(v => <SelectItem key={v.id} value={String(v.id)}>{v.registration_number}</SelectItem>)}</SelectContent></Select></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category *</label>
+                                    <Select onValueChange={setExpCategory} value={expCategory}><SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border"><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="Toll">Toll</SelectItem><SelectItem value="Parking">Parking</SelectItem><SelectItem value="Insurance">Insurance</SelectItem><SelectItem value="Repair">Repair</SelectItem><SelectItem value="Maintenance">Maintenance</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select></div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-                                <Input placeholder="e.g. Highway toll charges" value={expDescription} onChange={(e) => setExpDescription(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                            </div>
+                            <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label><Input placeholder="Highway toll" value={expDesc} onChange={(e) => setExpDesc(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Amount (₹)</label>
-                                    <Input type="number" placeholder="e.g. 340" value={expAmount} onChange={(e) => setExpAmount(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
-                                    <Input type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Amount (₹) *</label><Input type="number" placeholder="340" value={expAmount} onChange={(e) => setExpAmount(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Date</label><Input type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             </div>
-                            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg text-xs cursor-pointer mt-4">Save Expense</Button>
+                            <Button type="submit" disabled={expSaving} className="w-full h-11 rounded-xl btn-gradient cursor-pointer mt-2 disabled:opacity-50 text-sm">
+                                {expSaving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fa-solid fa-floppy-disk mr-2"></i>Save</>}
+                            </Button>
                         </form>
                     </div>
                 </div>
