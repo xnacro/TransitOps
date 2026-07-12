@@ -1,204 +1,97 @@
 import React, { useState, useEffect } from 'react'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, X } from 'lucide-react'
 import { getDrivers, createDriver } from '@/api/driver.service'
 
+function Skeleton({ className }) { return <div className={`skeleton ${className}`}></div> }
+
 export default function Drivers() {
-    const [drivers, setDrivers] = useState([])
-    const [isLoading, setIsLoading] = useState(true)
+    const [drivers, setDrivers] = useState([]); const [loading, setLoading] = useState(true); const [isOpen, setIsOpen] = useState(false)
+    const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState("")
+    const [licenseNumber, setLicenseNumber] = useState(""); const [licenseExpiry, setLicenseExpiry] = useState("")
+    const [saving, setSaving] = useState(false); const [error, setError] = useState(null)
 
-    const [isOpen, setIsOpen] = useState(false)
-    const [name, setName] = useState("")
-    const [phone, setPhone] = useState("")
-    const [email, setEmail] = useState("")
-    const [licenseNumber, setLicenseNumber] = useState("")
-    const [licenseExpiry, setLicenseExpiry] = useState("")
-    const [status, setStatus] = useState("Available")
+    useEffect(() => { (async () => { try { const d = await getDrivers(); if (Array.isArray(d)) setDrivers(d) } catch {} finally { setLoading(false) } })() }, [])
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const data = await getDrivers()
-                if (data && Array.isArray(data)) setDrivers(data)
-            } catch {
-                console.error("Failed to fetch drivers")
-            } finally {
-                setIsLoading(false)
-            }
-        }
-        fetchData()
-    }, [])
+    const resetForm = () => { setName(""); setPhone(""); setEmail(""); setLicenseNumber(""); setLicenseExpiry(""); setError(null) }
 
     const handleSave = async (e) => {
-        e.preventDefault()
-        if (!name || !phone || !email || !licenseNumber || !licenseExpiry) return
-
-        const payload = {
-            name: name.trim(),
-            phone: phone.trim(),
-            email: email.trim(),
-            license_number: licenseNumber.trim(),
-            license_expiry: licenseExpiry,
-            status
-        }
-
+        e.preventDefault(); setError(null)
+        if (!name || !phone || !email || !licenseNumber || !licenseExpiry) { setError("All fields are required."); return }
+        setSaving(true)
         try {
-            const created = await createDriver(payload)
-            setDrivers([created, ...drivers])
-            setIsOpen(false)
-            setName(""); setPhone(""); setEmail(""); setLicenseNumber(""); setLicenseExpiry(""); setStatus("Available")
-        } catch {
-            alert("Failed to save driver. Email or license number might already be taken.")
-        }
+            const created = await createDriver({ name: name.trim(), phone: phone.trim(), email: email.trim(), license_number: licenseNumber.trim(), license_expiry: licenseExpiry, status: 'Available' })
+            setDrivers([created, ...drivers]); setIsOpen(false); resetForm()
+        } catch (err) {
+            setError(err.response?.data?.message || err.response?.data?.errors?.join(', ') || "Failed to save driver.")
+        } finally { setSaving(false) }
     }
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Available': return 'bg-green-500/15 text-green-500 hover:bg-green-500/20 border-green-500/25'
-            case 'On Trip': return 'bg-blue-500/15 text-blue-500 hover:bg-blue-500/20 border-blue-500/25'
-            case 'Suspended': return 'bg-red-500/15 text-red-500 hover:bg-red-500/20 border-red-500/25'
-            default: return 'bg-primary/10 text-primary'
-        }
-    }
+    const statusBadge = (s) => ({ 'Available': 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400', 'On Trip': 'bg-blue-500/15 text-blue-600 dark:text-blue-400', 'Suspended': 'bg-red-500/15 text-red-600 dark:text-red-400' })[s] || 'bg-muted text-muted-foreground'
 
     return (
-        <div className="space-y-6 flex flex-col h-full relative">
-            {/* Filters Row */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Select defaultValue="all-status">
-                        <SelectTrigger className="w-[140px] h-9 text-xs bg-card border-border">
-                            <SelectValue placeholder="Status: All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all-status">Status: All</SelectItem>
-                            <SelectItem value="available">Available</SelectItem>
-                            <SelectItem value="on-trip">On Trip</SelectItem>
-                            <SelectItem value="suspended">Suspended</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <div className="relative w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search drivers..." className="pl-9 bg-card border-border h-9 text-xs" />
-                    </div>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                    <div className="relative"><i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                        <Input placeholder="Search drivers..." className="pl-9 h-10 w-64 text-sm rounded-xl bg-secondary/50 border-border" /></div>
                 </div>
-
-                <Button 
-                    onClick={() => setIsOpen(true)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 h-9 text-xs cursor-pointer"
-                >
-                    <Plus className="h-4 w-4" /> Add Driver
+                <Button onClick={() => { resetForm(); setIsOpen(true) }} className="h-10 rounded-xl btn-gradient text-sm cursor-pointer gap-2 px-5">
+                    <i className="fa-solid fa-plus"></i> Add Driver
                 </Button>
             </div>
 
-            {/* Data Table */}
-            <div className="rounded-xl border border-border bg-card overflow-hidden flex-1">
+            <div className="glass-card rounded-xl overflow-hidden">
                 <Table>
-                    <TableHeader>
-                        <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-xs">NAME</TableHead>
-                            <TableHead className="text-xs">PHONE</TableHead>
-                            <TableHead className="text-xs">EMAIL</TableHead>
-                            <TableHead className="text-xs">LICENSE NO.</TableHead>
-                            <TableHead className="text-xs">LICENSE EXPIRY</TableHead>
-                            <TableHead className="text-xs">STATUS</TableHead>
-                            <TableHead className="text-xs text-right">ACTIONS</TableHead>
-                        </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow className="border-border hover:bg-transparent bg-muted/30">
+                        {['Name', 'Phone', 'Email', 'License', 'Expiry', 'Status', ''].map((h, i) => (
+                            <TableHead key={i} className={`text-xs uppercase tracking-wider font-semibold text-muted-foreground ${i === 6 ? 'text-right' : ''}`}>{h}</TableHead>
+                        ))}</TableRow></TableHeader>
                     <TableBody>
-                        {drivers.map((driver) => (
-                            <TableRow key={driver.id} className="border-border">
-                                <TableCell className="font-semibold text-sm">{driver.name}</TableCell>
-                                <TableCell className="text-sm">{driver.phone}</TableCell>
-                                <TableCell className="text-sm text-muted-foreground">{driver.email}</TableCell>
-                                <TableCell className="text-sm font-mono">{driver.license_number}</TableCell>
-                                <TableCell className="text-sm">{driver.license_expiry}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className={`text-xs font-semibold ${getStatusColor(driver.status)}`}>
-                                        {driver.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-                                        Edit
-                                    </Button>
-                                </TableCell>
+                        {loading ? Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i} className="border-border">{Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
+                        )) : drivers.length === 0 ? (
+                            <TableRow><TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
+                                <i className="fa-solid fa-id-card text-4xl opacity-15 mb-3 block"></i>
+                                <p className="font-medium">No drivers yet</p><p className="text-xs mt-1 text-muted-foreground/60">Add your first driver</p>
+                            </TableCell></TableRow>
+                        ) : drivers.map((d) => (
+                            <TableRow key={d.id} className="border-border hover:bg-secondary/30 transition-colors">
+                                <TableCell className="font-bold text-foreground">{d.name}</TableCell>
+                                <TableCell className="text-muted-foreground font-mono">{d.phone}</TableCell>
+                                <TableCell className="text-muted-foreground">{d.email}</TableCell>
+                                <TableCell className="text-muted-foreground font-mono">{d.license_number}</TableCell>
+                                <TableCell className="text-muted-foreground">{d.license_expiry}</TableCell>
+                                <TableCell><span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadge(d.status)}`}>{d.status}</span></TableCell>
+                                <TableCell className="text-right"><Button variant="ghost" size="sm" className="text-xs cursor-pointer rounded-lg h-8"><i className="fa-solid fa-pen-to-square mr-1.5"></i>Edit</Button></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
 
-            {/* Modal Dialog Overlay for Add Driver */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-center items-center p-4">
-                    <div className="bg-card border border-border p-6 rounded-xl w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Add New Driver</h3>
-                            <button 
-                                onClick={() => setIsOpen(false)}
-                                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setIsOpen(false) }}>
+                    <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-bold text-foreground flex items-center gap-2"><i className="fa-solid fa-id-card text-primary"></i> Add Driver</h3>
+                            <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary cursor-pointer"><i className="fa-solid fa-xmark"></i></button>
                         </div>
-
-                        <form onSubmit={handleSave} className="space-y-4 pt-2">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Driver Name</label>
-                                <Input placeholder="e.g. Alex Johnson" value={name} onChange={(e) => setName(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                            </div>
-
+                        {error && <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2"><i className="fa-solid fa-circle-exclamation"></i>{error}</div>}
+                        <form onSubmit={handleSave} className="space-y-3.5">
+                            <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Full Name *</label><Input placeholder="Rajesh Sharma" value={name} onChange={(e) => setName(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Phone</label>
-                                    <Input placeholder="e.g. 9876543210" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Email</label>
-                                    <Input type="email" placeholder="e.g. alex@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Phone *</label><Input placeholder="9876543210" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Email *</label><Input type="email" placeholder="rajesh@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             </div>
-
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">License Number</label>
-                                    <Input placeholder="e.g. DL-A-12345" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">License Expiry</label>
-                                    <Input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">License No. *</label><Input placeholder="DL-A-12345" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Expiry Date *</label><Input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-                                <Select onValueChange={setStatus} value={status}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Available">Available</SelectItem>
-                                        <SelectItem value="On Trip">On Trip</SelectItem>
-                                        <SelectItem value="Suspended">Suspended</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg transition-colors text-xs cursor-pointer mt-4">
-                                Save Driver
+                            <Button type="submit" disabled={saving} className="w-full h-11 rounded-xl btn-gradient cursor-pointer mt-2 disabled:opacity-50 text-sm">
+                                {saving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fa-solid fa-floppy-disk mr-2"></i>Save Driver</>}
                             </Button>
                         </form>
                     </div>

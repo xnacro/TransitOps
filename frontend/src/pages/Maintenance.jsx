@@ -1,245 +1,110 @@
 import React, { useState, useEffect } from 'react'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, X, AlertTriangle } from 'lucide-react'
 import { getMaintenanceLogs, createMaintenance } from '@/api/maintenance.service'
 import { getVehicles } from '@/api/vehicle.service'
 
-const formatINR = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
-}
+const formatINR = (a) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(a)
+function Skeleton({ className }) { return <div className={`skeleton ${className}`}></div> }
 
 export default function Maintenance() {
-    const [logs, setLogs] = useState([])
-    const [vehicles, setVehicles] = useState([])
-    const [isLoading, setIsLoading] = useState(true)
-
-    const [isOpen, setIsOpen] = useState(false)
-    const [vehicleReg, setVehicleReg] = useState("")
-    const [description, setDescription] = useState("")
-    const [garage, setGarage] = useState("")
-    const [cost, setCost] = useState("")
-    const [startDate, setStartDate] = useState("")
-    const [status, setStatus] = useState("Open")
+    const [logs, setLogs] = useState([]); const [vehicles, setVehicles] = useState([]); const [loading, setLoading] = useState(true); const [isOpen, setIsOpen] = useState(false)
+    const [vehicleId, setVehicleId] = useState(""); const [description, setDescription] = useState("")
+    const [garage, setGarage] = useState(""); const [cost, setCost] = useState(""); const [startDate, setStartDate] = useState("")
+    const [saving, setSaving] = useState(false); const [error, setError] = useState(null)
 
     useEffect(() => {
-        const fetchData = async () => {
+        (async () => {
             try {
-                const [logsData, vehiclesData] = await Promise.all([
-                    getMaintenanceLogs(),
-                    getVehicles()
-                ])
-                if (logsData && Array.isArray(logsData)) setLogs(logsData)
-                if (vehiclesData && Array.isArray(vehiclesData)) {
-                    setVehicles(vehiclesData)
-                    if (vehiclesData.length > 0) {
-                        setVehicleReg(vehiclesData[0].registration_number)
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch data", err)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-        fetchData()
+                const [l, v] = await Promise.all([getMaintenanceLogs(), getVehicles()])
+                if (Array.isArray(l)) setLogs(l)
+                if (Array.isArray(v)) setVehicles(v)
+            } catch {} finally { setLoading(false) }
+        })()
     }, [])
 
+    const resetForm = () => { setVehicleId(""); setDescription(""); setGarage(""); setCost(""); setStartDate(""); setError(null) }
+
     const handleSave = async (e) => {
-        e.preventDefault()
-        if (!vehicleReg || !description || !cost || !startDate) return
-
-        const selectedVehicle = vehicles.find(v => v.registration_number === vehicleReg)
-        const payload = {
-            vehicle_id: selectedVehicle ? selectedVehicle.id : null,
-            vehicle_reg: vehicleReg,
-            description: description.trim(),
-            garage: garage.trim(),
-            cost: Number(cost),
-            start_date: startDate,
-            status
-        }
-
+        e.preventDefault(); setError(null)
+        if (!vehicleId || !description || !garage || !cost) { setError("Vehicle, description, garage, and cost are required."); return }
+        setSaving(true)
         try {
-            const created = await createMaintenance(payload)
-            setLogs([created, ...logs])
-            setIsOpen(false)
-            setDescription(""); setGarage(""); setCost(""); setStartDate(""); setStatus("Open")
-            if (vehicles.length > 0) {
-                setVehicleReg(vehicles[0].registration_number)
-            } else {
-                setVehicleReg("")
-            }
-        } catch {
-            alert("Failed to save maintenance record. Please check the vehicle registration.")
-        }
+            const created = await createMaintenance({ vehicle_id: Number(vehicleId), description: description.trim(), garage: garage.trim(), cost: Number(cost), start_date: startDate || undefined })
+            setLogs([created, ...logs]); setIsOpen(false); resetForm()
+        } catch (err) {
+            setError(err.response?.data?.message || err.response?.data?.errors?.join(', ') || "Failed to save record.")
+        } finally { setSaving(false) }
     }
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Closed': return 'bg-green-500/15 text-green-500 hover:bg-green-500/20 border-green-500/25'
-            case 'Open': return 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/20 border-amber-500/25'
-            default: return 'bg-primary/10 text-primary'
-        }
-    }
+    const statusBadge = (s) => s === 'Closed' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
 
     return (
-        <div className="space-y-6 flex flex-col h-full relative">
-            {/* Filters Row */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Select defaultValue="all-status">
-                        <SelectTrigger className="w-[160px] h-9 text-xs bg-card border-border">
-                            <SelectValue placeholder="Status: All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all-status">Status: All</SelectItem>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <div className="relative w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search logs..." className="pl-9 bg-card border-border h-9 text-xs" />
-                    </div>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                    <div className="relative"><i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs"></i>
+                        <Input placeholder="Search logs..." className="pl-9 h-10 w-64 text-sm rounded-xl bg-secondary/50 border-border" /></div>
                 </div>
-
-                <Button 
-                    onClick={() => setIsOpen(true)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 h-9 text-xs cursor-pointer"
-                >
-                    <Plus className="h-4 w-4" /> Log Maintenance
+                <Button onClick={() => { resetForm(); setIsOpen(true) }} className="h-10 rounded-xl btn-gradient text-sm cursor-pointer gap-2 px-5">
+                    <i className="fa-solid fa-plus"></i> Log Maintenance
                 </Button>
             </div>
 
-            {/* Service Log Table */}
-            <div className="rounded-xl border border-border bg-card overflow-hidden flex-1">
+            <div className="glass-card rounded-xl overflow-hidden">
                 <Table>
-                    <TableHeader>
-                        <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-xs">ID</TableHead>
-                            <TableHead className="text-xs">VEHICLE</TableHead>
-                            <TableHead className="text-xs">DESCRIPTION</TableHead>
-                            <TableHead className="text-xs">GARAGE</TableHead>
-                            <TableHead className="text-xs">COST</TableHead>
-                            <TableHead className="text-xs">START DATE</TableHead>
-                            <TableHead className="text-xs">STATUS</TableHead>
-                            <TableHead className="text-xs text-right">ACTIONS</TableHead>
-                        </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow className="border-border hover:bg-transparent bg-muted/30">
+                        {['ID', 'Vehicle', 'Description', 'Garage', 'Cost', 'Date', 'Status', ''].map((h, i) => (
+                            <TableHead key={i} className={`text-xs uppercase tracking-wider font-semibold text-muted-foreground ${i === 7 ? 'text-right' : ''}`}>{h}</TableHead>
+                        ))}</TableRow></TableHeader>
                     <TableBody>
-                        {logs.map((log) => (
-                            <TableRow key={log.id} className="border-border">
-                                <TableCell className="font-semibold text-sm">MNT-{String(log.id).padStart(3, '0')}</TableCell>
-                                <TableCell className="text-sm">{log.vehicle_reg || `V-${log.vehicle_id}`}</TableCell>
-                                <TableCell className="text-sm">{log.description}</TableCell>
-                                <TableCell className="text-sm text-muted-foreground">{log.garage || '—'}</TableCell>
-                                <TableCell className="text-sm">{formatINR(log.cost)}</TableCell>
-                                <TableCell className="text-sm">{log.start_date}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className={`text-xs font-semibold ${getStatusColor(log.status)}`}>
-                                        {log.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-                                        View
-                                    </Button>
-                                </TableCell>
+                        {loading ? Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i} className="border-border">{Array.from({ length: 8 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
+                        )) : logs.length === 0 ? (
+                            <TableRow><TableCell colSpan={8} className="text-center py-16 text-muted-foreground">
+                                <i className="fa-solid fa-wrench text-4xl opacity-15 mb-3 block"></i>
+                                <p className="font-medium">No maintenance records</p>
+                            </TableCell></TableRow>
+                        ) : logs.map((log) => (
+                            <TableRow key={log.id} className="border-border hover:bg-secondary/30 transition-colors">
+                                <TableCell className="font-bold text-foreground font-mono">MNT-{String(log.id).padStart(3, '0')}</TableCell>
+                                <TableCell className="text-muted-foreground font-mono">{log.vehicle_reg || `V-${log.vehicle_id}`}</TableCell>
+                                <TableCell className="text-muted-foreground">{log.description}</TableCell>
+                                <TableCell className="text-muted-foreground">{log.garage || '—'}</TableCell>
+                                <TableCell className="font-medium text-foreground">{formatINR(log.cost)}</TableCell>
+                                <TableCell className="text-muted-foreground">{log.start_date || '—'}</TableCell>
+                                <TableCell><span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadge(log.status)}`}>{log.status}</span></TableCell>
+                                <TableCell className="text-right"><Button variant="ghost" size="sm" className="text-xs cursor-pointer rounded-lg h-8"><i className="fa-solid fa-eye mr-1.5"></i>View</Button></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
 
-            {/* Modal Dialog Overlay for Log Maintenance */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-center items-center p-4">
-                    <div className="bg-card border border-border p-6 rounded-xl w-full max-w-md shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Log Service Record</h3>
-                            <button onClick={() => setIsOpen(false)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer">
-                                <X className="h-4 w-4" />
-                            </button>
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setIsOpen(false) }}>
+                    <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-bold text-foreground flex items-center gap-2"><i className="fa-solid fa-wrench text-primary"></i> Log Service</h3>
+                            <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary cursor-pointer"><i className="fa-solid fa-xmark"></i></button>
                         </div>
-
-                        <form onSubmit={handleSave} className="space-y-4 pt-2">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</label>
-                                <Select onValueChange={setVehicleReg} value={vehicleReg}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                        <SelectValue placeholder="Select vehicle" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {vehicles.map((v) => (
-                                            <SelectItem key={v.id} value={v.registration_number}>
-                                                {v.registration_number} — {v.make} {v.model}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Description</label>
-                                <Input placeholder="e.g. Oil Change, Brake Repair" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                            </div>
-
+                        {error && <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2"><i className="fa-solid fa-circle-exclamation"></i>{error}</div>}
+                        <form onSubmit={handleSave} className="space-y-3.5">
+                            <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Vehicle *</label>
+                                <Select onValueChange={setVehicleId} value={vehicleId}><SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                                    <SelectContent>{vehicles.map(v => <SelectItem key={v.id} value={String(v.id)}>{v.registration_number} — {v.make} {v.model}</SelectItem>)}</SelectContent></Select></div>
+                            <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description *</label><Input placeholder="Oil change, brake repair..." value={description} onChange={(e) => setDescription(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Garage</label>
-                                    <Input placeholder="e.g. AutoFix Garage" value={garage} onChange={(e) => setGarage(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cost (₹)</label>
-                                    <Input type="number" placeholder="e.g. 2500" value={cost} onChange={(e) => setCost(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Garage *</label><Input placeholder="AutoFix" value={garage} onChange={(e) => setGarage(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                                <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Cost (₹) *</label><Input type="number" placeholder="2500" value={cost} onChange={(e) => setCost(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Start Date</label>
-                                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-background border-border h-9 text-xs" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-                                    <Select onValueChange={setStatus} value={status}>
-                                        <SelectTrigger className="bg-background border-border h-9 text-xs">
-                                            <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Open">Open</SelectItem>
-                                            <SelectItem value="Closed">Closed</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg transition-colors text-xs cursor-pointer mt-4">
-                                Save Record
+                            <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Start Date</label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                            <Button type="submit" disabled={saving} className="w-full h-11 rounded-xl btn-gradient cursor-pointer mt-2 disabled:opacity-50 text-sm">
+                                {saving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fa-solid fa-floppy-disk mr-2"></i>Save Record</>}
                             </Button>
                         </form>
-
-                        <div className="pt-3 border-t border-border space-y-1.5 text-[9px] text-muted-foreground leading-relaxed">
-                            <div className="flex items-center space-x-1 font-semibold text-[10px] text-amber-500">
-                                <AlertTriangle className="h-3.5 w-3.5" />
-                                <span>Lifecycle Status Rules:</span>
-                            </div>
-                            <p>• <span className="font-semibold text-foreground">Available</span> → creating record → <span className="font-semibold text-amber-500">In Shop</span></p>
-                            <p>• <span className="font-semibold text-amber-500">In Shop</span> → closing record → <span className="font-semibold text-green-500">Available</span></p>
-                            <p className="italic mt-1 text-zinc-500">* Note: In Shop vehicles are automatically removed from the dispatch pool.</p>
-                        </div>
                     </div>
                 </div>
             )}

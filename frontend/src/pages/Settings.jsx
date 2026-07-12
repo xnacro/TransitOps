@@ -1,139 +1,81 @@
 import React, { useState } from 'react'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Check, Shield } from 'lucide-react'
 
 export default function Settings() {
-    const [depotName, setDepotName] = useState("Gandhinagar Depot GJO1")
-    const [currency, setCurrency] = useState("INR (Rs)")
+    const [depotName, setDepotName] = useState("Gandhinagar Depot GJ01")
+    const [currency, setCurrency] = useState("INR (₹)")
     const [distanceUnit, setDistanceUnit] = useState("Kilometers")
-    const [isSaving, setIsSaving] = useState(false)
+    const [saving, setSaving] = useState(false)
 
     const handleSave = (e) => {
-        e.preventDefault()
-        setIsSaving(true)
-        setTimeout(() => {
-            setIsSaving(false)
-            alert("Settings updated successfully!")
-        }, 800)
+        e.preventDefault(); setSaving(true)
+        setTimeout(() => { setSaving(false); alert("Settings updated!") }, 800)
     }
 
     const rbacData = [
-        { role: "Fleet Manager", fleet: "✓", drivers: "✓", trips: "—", fuel: "—", analytics: "✓" },
-        { role: "Dispatcher", fleet: "view", drivers: "—", trips: "✓", fuel: "—", analytics: "—" },
-        { role: "Safety Officer", fleet: "—", drivers: "✓", trips: "view", fuel: "—", analytics: "—" },
-        { role: "Financial Analyst", fleet: "view", drivers: "—", trips: "—", fuel: "✓", analytics: "✓" }
+        { role: "Fleet Manager", icon: "fa-truck-front", fleet: true, drivers: true, trips: false, fuel: false, analytics: true },
+        { role: "Dispatcher", icon: "fa-headset", fleet: 'view', drivers: false, trips: true, fuel: false, analytics: false },
+        { role: "Safety Officer", icon: "fa-shield-halved", fleet: false, drivers: true, trips: 'view', fuel: false, analytics: false },
+        { role: "Financial Analyst", icon: "fa-chart-column", fleet: 'view', drivers: false, trips: false, fuel: true, analytics: true },
     ]
 
-    const renderCellContent = (value) => {
-        if (value === "✓") {
-            return <Check className="h-4.5 w-4.5 text-green-500 font-black mx-auto" />
-        } else if (value === "view") {
-            return (
-                <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20 text-[10px] font-semibold tracking-wider uppercase mx-auto block w-fit">
-                    View Only
-                </Badge>
-            )
-        } else {
-            return <span className="text-muted-foreground/60 mx-auto block w-fit">—</span>
-        }
+    const renderAccess = (val) => {
+        if (val === true) return <i className="fa-solid fa-circle-check text-emerald-500"></i>
+        if (val === 'view') return <span className="inline-flex px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 text-[10px] font-semibold uppercase tracking-wider">View</span>
+        return <span className="text-muted-foreground/30">—</span>
     }
 
     return (
-        <div className="flex flex-col lg:flex-row gap-12 w-full items-start">
-            
-            {/* General Settings Column (Fixed elegant width on desktop) */}
-            <div className="w-full lg:w-[360px] shrink-0">
-                <form onSubmit={handleSave}>
-                    <div className="bg-card border border-border rounded-xl p-6 flex flex-col gap-6 shadow-xs">
-                        <div className="border-b border-border pb-4">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">General Settings</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">Configure global parameters for depot operations.</p>
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* General Settings */}
+            <div className="w-full lg:w-[380px] shrink-0">
+                <form onSubmit={handleSave} className="glass-card rounded-xl p-6 space-y-5">
+                    <div className="flex items-center gap-2.5 border-b border-border pb-4">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center"><i className="fa-solid fa-gear text-primary"></i></div>
+                        <div>
+                            <h3 className="text-lg font-bold text-foreground">General</h3>
+                            <p className="text-xs text-muted-foreground">Configure depot parameters</p>
                         </div>
-
-                        <div className="flex flex-col gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Depot Name</label>
-                                <Input 
-                                    value={depotName} 
-                                    onChange={(e) => setDepotName(e.target.value)} 
-                                    className="bg-background border-border h-9 text-xs"
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Currency</label>
-                                <Input 
-                                    value={currency} 
-                                    onChange={(e) => setCurrency(e.target.value)} 
-                                    className="bg-background border-border h-9 text-xs"
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Distance Unit</label>
-                                <Input 
-                                    value={distanceUnit} 
-                                    onChange={(e) => setDistanceUnit(e.target.value)} 
-                                    className="bg-background border-border h-9 text-xs"
-                                />
-                            </div>
-                        </div>
-
-                        <Button 
-                            type="submit" 
-                            disabled={isSaving}
-                            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 h-9 rounded-lg text-xs cursor-pointer mt-2"
-                        >
-                            {isSaving ? "Saving Changes..." : "Save Changes"}
-                        </Button>
                     </div>
+                    <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Depot Name</label><Input value={depotName} onChange={(e) => setDepotName(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                    <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Currency</label><Input value={currency} onChange={(e) => setCurrency(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                    <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">Distance Unit</label><Input value={distanceUnit} onChange={(e) => setDistanceUnit(e.target.value)} className="h-11 rounded-xl bg-secondary/50 border-border" /></div>
+                    <Button type="submit" disabled={saving} className="w-full h-11 rounded-xl btn-gradient cursor-pointer disabled:opacity-50 text-sm">
+                        {saving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fa-solid fa-floppy-disk mr-2"></i>Save Changes</>}
+                    </Button>
                 </form>
             </div>
 
-            {/* Role-Based Access Control Column (Fluid layout) */}
+            {/* RBAC Matrix */}
             <div className="flex-1 w-full">
-                <div className="bg-card border border-border rounded-xl p-6 flex flex-col gap-6 shadow-xs">
-                    <div className="flex items-center justify-between border-b border-border pb-4">
+                <div className="glass-card rounded-xl p-6 space-y-5">
+                    <div className="flex items-center gap-2.5 border-b border-border pb-4">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center"><i className="fa-solid fa-shield-halved text-primary"></i></div>
                         <div>
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Role-Based Access (RBAC)</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">Permission matrix for functional platform roles.</p>
-                        </div>
-                        <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-500 shrink-0">
-                            <Shield className="h-4 w-4" />
+                            <h3 className="text-lg font-bold text-foreground">Role-Based Access</h3>
+                            <p className="text-xs text-muted-foreground">Permission matrix for platform roles</p>
                         </div>
                     </div>
-
-                    <div className="rounded-lg border border-border overflow-hidden">
+                    <div className="rounded-xl border border-border overflow-hidden">
                         <Table>
-                            <TableHeader>
-                                <TableRow className="border-border hover:bg-transparent bg-muted/20">
-                                    <TableHead className="text-xs">ROLE</TableHead>
-                                    <TableHead className="text-xs text-center">FLEET</TableHead>
-                                    <TableHead className="text-xs text-center">DRIVERS</TableHead>
-                                    <TableHead className="text-xs text-center">TRIPS</TableHead>
-                                    <TableHead className="text-xs text-center">FUEL/EXP.</TableHead>
-                                    <TableHead className="text-xs text-center">ANALYTICS</TableHead>
-                                </TableRow>
-                            </TableHeader>
+                            <TableHeader><TableRow className="border-border hover:bg-transparent bg-muted/30">
+                                {['Role', 'Fleet', 'Drivers', 'Trips', 'Fuel/Exp.', 'Analytics'].map((h, i) => (
+                                    <TableHead key={i} className={`text-xs uppercase tracking-wider font-semibold text-muted-foreground ${i > 0 ? 'text-center' : ''}`}>{h}</TableHead>
+                                ))}</TableRow></TableHeader>
                             <TableBody>
                                 {rbacData.map((row, idx) => (
-                                    <TableRow key={idx} className="border-border">
-                                        <TableCell className="font-bold text-xs text-foreground py-4.5">{row.role}</TableCell>
-                                        <TableCell className="text-center">{renderCellContent(row.fleet)}</TableCell>
-                                        <TableCell className="text-center">{renderCellContent(row.drivers)}</TableCell>
-                                        <TableCell className="text-center">{renderCellContent(row.trips)}</TableCell>
-                                        <TableCell className="text-center">{renderCellContent(row.fuel)}</TableCell>
-                                        <TableCell className="text-center">{renderCellContent(row.analytics)}</TableCell>
+                                    <TableRow key={idx} className="border-border hover:bg-secondary/30">
+                                        <TableCell className="font-bold text-foreground flex items-center gap-2.5 py-4">
+                                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><i className={`fa-solid ${row.icon} text-primary text-xs`}></i></div>
+                                            {row.role}
+                                        </TableCell>
+                                        <TableCell className="text-center">{renderAccess(row.fleet)}</TableCell>
+                                        <TableCell className="text-center">{renderAccess(row.drivers)}</TableCell>
+                                        <TableCell className="text-center">{renderAccess(row.trips)}</TableCell>
+                                        <TableCell className="text-center">{renderAccess(row.fuel)}</TableCell>
+                                        <TableCell className="text-center">{renderAccess(row.analytics)}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -141,7 +83,6 @@ export default function Settings() {
                     </div>
                 </div>
             </div>
-
         </div>
     )
 }
