@@ -9,6 +9,7 @@ import Trips from './pages/Trips'
 import Maintenance from './pages/Maintenance'
 import Fuel from './pages/Fuel'
 import Reports from './pages/Reports'
+import Settings from './pages/Settings'
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -48,6 +49,7 @@ function App() {
       case 'maintenance': return <Maintenance />
       case 'fuel': return <Fuel />
       case 'reports': return <Reports />
+      case 'settings': return <Settings />
       default:
         return (
           <div className="border-2 border-dashed border-border rounded-xl p-8 flex items-center justify-center h-full text-muted-foreground">

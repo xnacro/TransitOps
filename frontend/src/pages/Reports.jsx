@@ -1,18 +1,41 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, TrendingUp, Activity, DollarSign } from 'lucide-react'
 
 export default function Reports() {
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Analytics Overview</h2>
-                    <p className="text-muted-foreground text-sm">Financial and operational performance metrics.</p>
+            {/* Filters Row */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Select defaultValue="this-month">
+                        <SelectTrigger className="w-[180px] h-9 text-xs bg-card border-border">
+                            <SelectValue placeholder="Period: This Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="this-month">Period: This Month</SelectItem>
+                            <SelectItem value="last-30">Last 30 Days</SelectItem>
+                            <SelectItem value="ytd">Year to Date</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select defaultValue="all-divisions">
+                        <SelectTrigger className="w-[180px] h-9 text-xs bg-card border-border">
+                            <SelectValue placeholder="Division: All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all-divisions">Division: All</SelectItem>
+                            <SelectItem value="logistics">Logistics</SelectItem>
+                            <SelectItem value="operations">Operations</SelectItem>
+                            <SelectItem value="finance">Finance</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-                <Button variant="outline" className="border-border">
-                    <Download className="mr-2 h-4 w-4" /> Export CSV
+
+                <Button className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 h-9 text-xs cursor-pointer">
+                    <Download className="h-4 w-4" /> Export CSV
                 </Button>
             </div>
 

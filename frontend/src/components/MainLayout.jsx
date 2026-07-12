@@ -12,7 +12,8 @@ import {
     Moon,
     ChevronLeft,
     ChevronRight,
-    LogOut
+    LogOut,
+    Settings
 } from 'lucide-react'
 
 export default function MainLayout({ children, activePage, setActivePage, user, onLogout }) {
@@ -20,7 +21,7 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
     const [isCollapsed, setIsCollapsed] = useState(false)
 
     const roleNavs = {
-        'admin': ['dashboard', 'vehicles', 'drivers', 'trips', 'maintenance', 'fuel', 'reports'],
+        'admin': ['dashboard', 'vehicles', 'drivers', 'trips', 'maintenance', 'fuel', 'reports', 'settings'],
         'fleet-manager': ['vehicles', 'maintenance'],
         'dispatcher': ['dashboard', 'trips'],
         'safety-officer': ['drivers'],
@@ -35,6 +36,7 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
         { id: 'maintenance', name: 'Maintenance', icon: Wrench },
         { id: 'fuel', name: 'Fuel & Expenses', icon: Fuel },
         { id: 'reports', name: 'Reports', icon: DollarSign },
+        { id: 'settings', name: 'Settings', icon: Settings },
     ]
 
     // Filter nav items based on user role
@@ -118,7 +120,8 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
                                 'trips': 'Trips/Dispatch',
                                 'maintenance': 'Maintenance',
                                 'fuel': 'Fuel & Expenses',
-                                'reports': 'Reports'
+                                'reports': 'Reports',
+                                'settings': 'Settings & RBAC'
                             };
                             return pageTitles[activePage] || activePage;
                         })()}

@@ -66,35 +66,35 @@ export default function Login({ onLogin }) {
 
             <div className="grid grid-cols-1 gap-3">
               {[
-                { 
-                  name: "Fleet Manager", 
-                  desc: "Vehicle profiles, diagnostics, and shop schedules.", 
-                  icon: Truck, 
-                  color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" 
+                {
+                  name: "Fleet Manager",
+                  desc: "Vehicle profiles, diagnostics, and shop schedules.",
+                  icon: Truck,
+                  color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
                 },
-                { 
-                  name: "Dispatcher", 
-                  desc: "Real-time trip optimization and live operational maps.", 
-                  icon: Route, 
-                  color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" 
+                {
+                  name: "Dispatcher",
+                  desc: "Real-time trip optimization and live operational maps.",
+                  icon: Route,
+                  color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
                 },
-                { 
-                  name: "Safety Officer", 
-                  desc: "Driver licenses, safety metrics, and compliance checks.", 
-                  icon: Users, 
-                  color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" 
+                {
+                  name: "Safety Officer",
+                  desc: "Driver licenses, safety metrics, and compliance checks.",
+                  icon: Users,
+                  color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
                 },
-                { 
-                  name: "Financial Analyst", 
-                  desc: "Fuel expenses, toll logs, and monthly cost reporting.", 
-                  icon: DollarSign, 
-                  color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" 
+                {
+                  name: "Financial Analyst",
+                  desc: "Fuel expenses, toll logs, and monthly cost reporting.",
+                  icon: DollarSign,
+                  color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                 }
               ].map((r, idx) => {
                 const Icon = r.icon
                 return (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="flex items-center space-x-3.5 p-3 rounded-xl bg-white/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 dark:bg-zinc-900/40 dark:border-zinc-800/60 dark:hover:bg-zinc-900/60 dark:hover:border-zinc-700/60 transition-all duration-300"
                   >
                     <div className={`p-2 rounded-lg border shrink-0 ${r.color}`}>
@@ -187,6 +187,7 @@ export default function Login({ onLogin }) {
                   <SelectItem value="dispatcher">Dispatcher</SelectItem>
                   <SelectItem value="safety-officer">Safety Officer</SelectItem>
                   <SelectItem value="financial-analyst">Financial Analyst</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
