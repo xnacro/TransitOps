@@ -32,6 +32,7 @@ class DashboardService {
         ];
 
         return {
+            // New flatter format for the frontend page:
             activeVehicles: vehicles.on_trip || 0,
             availableVehicles: vehicles.available || 0,
             inMaintenance: vehicles.in_shop || 0,
@@ -40,7 +41,13 @@ class DashboardService {
             driversOnDuty: (drivers.total - drivers.available) || 0,
             fleetUtilization,
             vehicleStatus,
-            recentTrips
+            recentTrips,
+
+            // Original structured format for the backend test.js:
+            vehicles,
+            drivers,
+            trips,
+            fleet_utilization: fleetUtilization
         };
     }
 }
