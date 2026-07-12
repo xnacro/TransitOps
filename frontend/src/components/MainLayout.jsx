@@ -5,6 +5,8 @@ import {
     Truck,
     Users,
     Route,
+    Wrench,
+    Fuel,
     Sun,
     Moon,
     ChevronLeft,
@@ -17,11 +19,11 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
     const [isCollapsed, setIsCollapsed] = useState(false)
 
     const roleNavs = {
-        'admin': ['dashboard', 'vehicles', 'drivers', 'trips'],
-        'fleet-manager': ['vehicles'],
+        'admin': ['dashboard', 'vehicles', 'drivers', 'trips', 'maintenance', 'fuel'],
+        'fleet-manager': ['vehicles', 'maintenance'],
         'dispatcher': ['dashboard', 'trips'],
         'safety-officer': ['drivers'],
-        'financial-analyst': ['dashboard']
+        'financial-analyst': ['fuel']
     }
 
     const allNavItems = [
@@ -29,6 +31,8 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
         { id: 'vehicles', name: 'Vehicles', icon: Truck },
         { id: 'drivers', name: 'Drivers', icon: Users },
         { id: 'trips', name: 'Trips/Dispatch', icon: Route },
+        { id: 'maintenance', name: 'Maintenance', icon: Wrench },
+        { id: 'fuel', name: 'Fuel & Expenses', icon: Fuel },
     ]
 
     // Filter nav items based on user role
@@ -109,7 +113,9 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
                                 'dashboard': 'Dashboard',
                                 'vehicles': 'Vehicle Registry',
                                 'drivers': 'Drivers',
-                                'trips': 'Trips/Dispatch'
+                                'trips': 'Trips/Dispatch',
+                                'maintenance': 'Maintenance',
+                                'fuel': 'Fuel & Expenses'
                             };
                             return pageTitles[activePage] || activePage;
                         })()}

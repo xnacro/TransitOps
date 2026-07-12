@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard'
 import Vehicles from './pages/Vehicles'
 import Drivers from './pages/Drivers'
 import Trips from './pages/Trips'
+import Maintenance from './pages/Maintenance'
+import Fuel from './pages/Fuel'
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -21,7 +23,8 @@ function App() {
   const roleDefaults = {
     'fleet-manager': 'vehicles',
     'dispatcher': 'dashboard',
-    'safety-officer': 'drivers'
+    'safety-officer': 'drivers',
+    'financial-analyst': 'fuel'
   }
 
   const handleLogin = (loggedInUser) => {
@@ -41,6 +44,8 @@ function App() {
       case 'vehicles': return <Vehicles />
       case 'drivers': return <Drivers />
       case 'trips': return <Trips />
+      case 'maintenance': return <Maintenance />
+      case 'fuel': return <Fuel />
       default:
         return (
           <div className="border-2 border-dashed border-border rounded-xl p-8 flex items-center justify-center h-full text-muted-foreground">
