@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, X } from 'lucide-react'
 import { getTrips, createTrip } from '@/api/trip.service'
+import { getVehicles } from '@/api/vehicle.service'
+import { getDrivers } from '@/api/driver.service'
 
 export default function Trips() {
     const [trips, setTrips] = useState([])
@@ -26,13 +28,28 @@ export default function Trips() {
     const [cargoWeight, setCargoWeight] = useState("")
     const [plannedDistance, setPlannedDistance] = useState("")
 
+    const [vehicles, setVehicles] = useState([])
+    const [drivers, setDrivers] = useState([])
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await getTrips()
-                if (data && Array.isArray(data)) setTrips(data)
+                const [tripsData, vehiclesData, driversData] = await Promise.all([
+                    getTrips(),
+                    getVehicles(),
+                    getDrivers()
+                ])
+                if (tripsData && Array.isArray(tripsData)) setTrips(tripsData)
+                if (vehiclesData && Array.isArray(vehiclesData)) {
+                    setVehicles(vehiclesData)
+                    if (vehiclesData.length > 0) setVehicleId(String(vehiclesData[0].id))
+                }
+                if (driversData && Array.isArray(driversData)) {
+                    setDrivers(driversData)
+                    if (driversData.length > 0) setDriverId(String(driversData[0].id))
+                }
             } catch {
-                console.error("Failed to fetch trips")
+                console.error("Failed to fetch trips data")
             } finally {
                 setIsLoading(false)
             }
@@ -168,6 +185,39 @@ export default function Trips() {
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Destination</label>
                                     <Input placeholder="e.g. Warehouse A" value={destination} onChange={(e) => setDestination(e.target.value)} className="bg-background border-border h-9 text-xs" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</label>
+                                    <Select onValueChange={setVehicleId} value={vehicleId}>
+                                        <SelectTrigger className="bg-background border-border h-9 text-xs">
+                                            <SelectValue placeholder="Select vehicle" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {vehicles.map((v) => (
+                                                <SelectItem key={v.id} value={String(v.id)}>
+                                                    {v.registration_number}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Driver</label>
+                                    <Select onValueChange={setDriverId} value={driverId}>
+                                        <SelectTrigger className="bg-background border-border h-9 text-xs">
+                                            <SelectValue placeholder="Select driver" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {drivers.map((d) => (
+                                                <SelectItem key={d.id} value={String(d.id)}>
+                                                    {d.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
