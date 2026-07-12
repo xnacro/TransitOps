@@ -3,12 +3,8 @@ import { validateRegister, validateLogin } from "../validators/auth.validator.js
 
 class AuthController {
 
-    /**
-     * POST /api/auth/register
-     */
     static async register(req, res) {
         try {
-            // Validate request body
             const errors = validateRegister(req.body);
             if (errors.length > 0) {
                 return res.status(400).json({
@@ -38,12 +34,8 @@ class AuthController {
         }
     }
 
-    /**
-     * POST /api/auth/login
-     */
     static async login(req, res) {
         try {
-            // Validate request body
             const errors = validateLogin(req.body);
             if (errors.length > 0) {
                 return res.status(400).json({
@@ -73,9 +65,6 @@ class AuthController {
         }
     }
 
-    /**
-     * GET /api/auth/me
-     */
     static async getMe(req, res) {
         try {
             const { user } = await AuthService.getProfile(req.user.id);

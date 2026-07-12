@@ -8,7 +8,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Data Parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -24,7 +23,6 @@ app.use((req, res) => {
     });
 });
 
-// Server Started...
 const startServer = async () => {
     try {
         const result = await pool.query("SELECT NOW()");
