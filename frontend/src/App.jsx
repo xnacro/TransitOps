@@ -10,6 +10,7 @@ function App() {
   }
 
   const handleLogout = () => {
+    window.history.pushState({}, '', '/')
     setUser(null)
   }
 
