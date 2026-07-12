@@ -18,13 +18,14 @@ function App() {
     if (window.location.pathname === '/dashboard' || searchParams.get('bypass') === 'true') {
       return { email: 'admin@transitops.com', role: 'admin' }
     }
-    return null
+    const savedUser = localStorage.getItem("user")
+    return savedUser ? JSON.parse(savedUser) : null
   })
   const [activePage, setActivePage] = useState('dashboard')
 
   const roleDefaults = {
     'fleet-manager': 'vehicles',
-    'dispatcher': 'dashboard',
+    'driver': 'dashboard',
     'safety-officer': 'drivers',
     'financial-analyst': 'fuel'
   }
@@ -37,6 +38,8 @@ function App() {
 
   const handleLogout = () => {
     window.history.pushState({}, '', '/')
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
     setUser(null)
   }
 

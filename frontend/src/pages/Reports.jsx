@@ -9,15 +9,14 @@ const formatINR = (amount) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 }
 
-// Fallback mock data
-const MOCK_REPORTS = {
-    fuelEfficiency: { value: "8.4 km/L", trend: "+2.1%", trendColor: "text-green-500" },
-    avgCostPerTrip: { value: formatINR(10700), trend: "+4.3%", trendColor: "text-red-500" },
-    fleetROI: { value: "18.2%", trend: "+1.2%", trendColor: "text-green-500" },
+const DEFAULT_REPORTS = {
+    fuelEfficiency: { value: "— km/L", trend: "—", trendColor: "text-zinc-500" },
+    avgCostPerTrip: { value: formatINR(0), trend: "—", trendColor: "text-zinc-500" },
+    fleetROI: { value: "—%", trend: "—", trendColor: "text-zinc-500" },
 }
 
 export default function Reports() {
-    const [reports, setReports] = useState(MOCK_REPORTS)
+    const [reports, setReports] = useState(DEFAULT_REPORTS)
     const [isLoading, setIsLoading] = useState(true)
     const [isExporting, setIsExporting] = useState(false)
 
@@ -30,17 +29,16 @@ export default function Reports() {
                     getRevenue(),
                     getOperationalCost()
                 ])
-                // Map API responses if available
-                const updated = { ...MOCK_REPORTS }
+                const updated = { ...DEFAULT_REPORTS }
                 if (fuelData.status === 'fulfilled' && fuelData.value) {
-                    updated.fuelEfficiency = { value: `${fuelData.value.efficiency} km/L`, trend: fuelData.value.trend || "+2.1%", trendColor: "text-green-500" }
+                    updated.fuelEfficiency = { value: `${fuelData.value.efficiency} km/L`, trend: fuelData.value.trend || "—", trendColor: "text-green-500" }
                 }
                 if (costData.status === 'fulfilled' && costData.value) {
-                    updated.avgCostPerTrip = { value: formatINR(costData.value.avgCostPerTrip || 10700), trend: costData.value.trend || "+4.3%", trendColor: "text-red-500" }
+                    updated.avgCostPerTrip = { value: formatINR(costData.value.avgCostPerTrip || 0), trend: costData.value.trend || "—", trendColor: "text-red-500" }
                 }
                 setReports(updated)
             } catch {
-                // Backend not available — keep mock data
+                console.error("Failed to fetch report data")
             } finally {
                 setIsLoading(false)
             }

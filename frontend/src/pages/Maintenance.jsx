@@ -13,23 +13,19 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, X, AlertTriangle } from 'lucide-react'
 import { getMaintenanceLogs, createMaintenance } from '@/api/maintenance.service'
-
-const MOCK_LOGS = [
-    { id: 1, vehicle_id: 3, vehicle_reg: "GJO1UB1120", description: "Oil Change", garage: "AutoFix Garage", cost: 2500, start_date: "2026-07-07", status: "Open" },
-    { id: 2, vehicle_id: 2, vehicle_reg: "GJO1UB9981", description: "Engine Repair", garage: "Metro Motors", cost: 18000, start_date: "2026-06-25", completion_date: "2026-07-01", status: "Closed" },
-    { id: 3, vehicle_id: 3, vehicle_reg: "GJO1UB1120", description: "Tyre Replace", garage: "QuickFit", cost: 6200, start_date: "2026-05-14", status: "Open" },
-]
+import { getVehicles } from '@/api/vehicle.service'
 
 const formatINR = (amount) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 }
 
 export default function Maintenance() {
-    const [logs, setLogs] = useState(MOCK_LOGS)
+    const [logs, setLogs] = useState([])
+    const [vehicles, setVehicles] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     const [isOpen, setIsOpen] = useState(false)
-    const [vehicleReg, setVehicleReg] = useState("GJO1UB4521")
+    const [vehicleReg, setVehicleReg] = useState("")
     const [description, setDescription] = useState("")
     const [garage, setGarage] = useState("")
     const [cost, setCost] = useState("")
@@ -39,10 +35,19 @@ export default function Maintenance() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await getMaintenanceLogs()
-                if (data && Array.isArray(data)) setLogs(data)
-            } catch {
-                // Backend not available — keep mock data
+                const [logsData, vehiclesData] = await Promise.all([
+                    getMaintenanceLogs(),
+                    getVehicles()
+                ])
+                if (logsData && Array.isArray(logsData)) setLogs(logsData)
+                if (vehiclesData && Array.isArray(vehiclesData)) {
+                    setVehicles(vehiclesData)
+                    if (vehiclesData.length > 0) {
+                        setVehicleReg(vehiclesData[0].registration_number)
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch data", err)
             } finally {
                 setIsLoading(false)
             }
@@ -54,8 +59,9 @@ export default function Maintenance() {
         e.preventDefault()
         if (!vehicleReg || !description || !cost || !startDate) return
 
+        const selectedVehicle = vehicles.find(v => v.registration_number === vehicleReg)
         const payload = {
-            vehicle_id: null, // Will be resolved by backend from reg number
+            vehicle_id: selectedVehicle ? selectedVehicle.id : null,
             vehicle_reg: vehicleReg,
             description: description.trim(),
             garage: garage.trim(),
@@ -67,12 +73,16 @@ export default function Maintenance() {
         try {
             const created = await createMaintenance(payload)
             setLogs([created, ...logs])
+            setIsOpen(false)
+            setDescription(""); setGarage(""); setCost(""); setStartDate(""); setStatus("Open")
+            if (vehicles.length > 0) {
+                setVehicleReg(vehicles[0].registration_number)
+            } else {
+                setVehicleReg("")
+            }
         } catch {
-            setLogs([{ id: Date.now(), ...payload }, ...logs])
+            alert("Failed to save maintenance record. Please check the vehicle registration.")
         }
-
-        setIsOpen(false)
-        setVehicleReg("GJO1UB4521"); setDescription(""); setGarage(""); setCost(""); setStartDate(""); setStatus("Open")
     }
 
     const getStatusColor = (status) => {
@@ -172,9 +182,11 @@ export default function Maintenance() {
                                         <SelectValue placeholder="Select vehicle" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="GJO1UB4521">GJO1UB4521 — Ford Transit</SelectItem>
-                                        <SelectItem value="GJO1UB9981">GJO1UB9981 — Volvo FH16</SelectItem>
-                                        <SelectItem value="GJO1UB1120">GJO1UB1120 — Suzuki Mini</SelectItem>
+                                        {vehicles.map((v) => (
+                                            <SelectItem key={v.id} value={v.registration_number}>
+                                                {v.registration_number} — {v.make} {v.model}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>

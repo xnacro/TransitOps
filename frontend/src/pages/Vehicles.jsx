@@ -14,16 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, X } from 'lucide-react'
 import { getVehicles, createVehicle } from '@/api/vehicle.service'
 
-// Fallback mock data
-const MOCK_VEHICLES = [
-    { id: 1, registration_number: "GJO1UB4521", make: "Ford", model: "Transit", type: "Van", capacity: 500, fuel_type: "Diesel", odometer: 74000, status: "Available" },
-    { id: 2, registration_number: "GJO1UB9981", make: "Volvo", model: "FH16", type: "Truck", capacity: 5000, fuel_type: "Diesel", odometer: 182000, status: "On Trip" },
-    { id: 3, registration_number: "GJO1UB1120", make: "Suzuki", model: "Mini-03", type: "Mini", capacity: 1000, fuel_type: "Petrol", odometer: 66000, status: "In Shop" },
-    { id: 4, registration_number: "GJO1UB0071", make: "Mercedes", model: "Sprinter", type: "Van", capacity: 750, fuel_type: "Diesel", odometer: 217900, status: "Retired" },
-]
-
 export default function Vehicles() {
-    const [vehicles, setVehicles] = useState(MOCK_VEHICLES)
+    const [vehicles, setVehicles] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     const [isOpen, setIsOpen] = useState(false)
@@ -42,7 +34,7 @@ export default function Vehicles() {
                 const data = await getVehicles()
                 if (data && Array.isArray(data)) setVehicles(data)
             } catch {
-                // Backend not available — keep mock data
+                console.error("Failed to fetch vehicles")
             } finally {
                 setIsLoading(false)
             }
@@ -68,13 +60,11 @@ export default function Vehicles() {
         try {
             const created = await createVehicle(payload)
             setVehicles([created, ...vehicles])
+            setIsOpen(false)
+            setRegNo(""); setMake(""); setModel(""); setType("Van"); setCapacity(""); setFuelType("Diesel"); setOdometer(""); setStatus("Available")
         } catch {
-            // Backend not available — add locally with mock id
-            setVehicles([{ id: Date.now(), ...payload }, ...vehicles])
+            alert("Failed to save vehicle. Backend is down or registration number is already taken.")
         }
-
-        setIsOpen(false)
-        setRegNo(""); setMake(""); setModel(""); setType("Van"); setCapacity(""); setFuelType("Diesel"); setOdometer(""); setStatus("Available")
     }
 
     const formatCapacity = (kg) => {

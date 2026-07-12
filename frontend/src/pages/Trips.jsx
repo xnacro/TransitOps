@@ -14,14 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, X } from 'lucide-react'
 import { getTrips, createTrip } from '@/api/trip.service'
 
-const MOCK_TRIPS = [
-    { id: 1, source: "Gandhinagar Depot", destination: "Warehouse A", vehicle_id: 1, driver_id: 1, vehicle_reg: "GJO1UB4521", driver_name: "Alex Johnson", cargo_weight: 400, planned_distance: 120, status: "Completed" },
-    { id: 2, source: "Gandhinagar Depot", destination: "Port Terminal", vehicle_id: 2, driver_id: 2, vehicle_reg: "GJO1UB9981", driver_name: "Maria Garcia", cargo_weight: 3500, planned_distance: 85, status: "Dispatched" },
-    { id: 3, source: "Gandhinagar Depot", destination: "City Center", vehicle_id: 3, driver_id: 4, vehicle_reg: "GJO1UB1120", driver_name: "Linda Chen", cargo_weight: 200, planned_distance: 45, status: "Draft" },
-]
-
 export default function Trips() {
-    const [trips, setTrips] = useState(MOCK_TRIPS)
+    const [trips, setTrips] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     const [isOpen, setIsOpen] = useState(false)
@@ -38,7 +32,7 @@ export default function Trips() {
                 const data = await getTrips()
                 if (data && Array.isArray(data)) setTrips(data)
             } catch {
-                // Backend not available — keep mock data
+                console.error("Failed to fetch trips")
             } finally {
                 setIsLoading(false)
             }
@@ -63,12 +57,11 @@ export default function Trips() {
         try {
             const created = await createTrip(payload)
             setTrips([created, ...trips])
+            setIsOpen(false)
+            setSource("Gandhinagar Depot"); setDestination(""); setVehicleId(""); setDriverId(""); setCargoWeight(""); setPlannedDistance("")
         } catch {
-            setTrips([{ id: Date.now(), ...payload, vehicle_reg: "—", driver_name: "—" }, ...trips])
+            alert("Failed to save trip. Make sure the vehicle and driver IDs exist.")
         }
-
-        setIsOpen(false)
-        setSource("Gandhinagar Depot"); setDestination(""); setVehicleId(""); setDriverId(""); setCargoWeight(""); setPlannedDistance("")
     }
 
     const getStatusColor = (status) => {

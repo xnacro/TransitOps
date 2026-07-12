@@ -13,41 +13,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, X, Calculator } from 'lucide-react'
 import { getFuelLogs, createFuelLog } from '@/api/fuellog.service'
 import { getExpenses, createExpense } from '@/api/expense.service'
+import { getVehicles } from '@/api/vehicle.service'
 
 const formatINR = (amount) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
 }
 
-const MOCK_FUEL_LOGS = [
-    { id: 1, vehicle_id: 1, vehicle_reg: "GJO1UB4521", trip_id: 1, liters: 42, fuel_cost: 3150, fuel_station: "HP Petrol Pump", date: "2026-07-05" },
-    { id: 2, vehicle_id: 2, vehicle_reg: "GJO1UB9981", trip_id: 2, liters: 110, fuel_cost: 8400, fuel_station: "Indian Oil", date: "2026-07-06" },
-    { id: 3, vehicle_id: 3, vehicle_reg: "GJO1UB1120", trip_id: null, liters: 28, fuel_cost: 2050, fuel_station: "Bharat Petroleum", date: "2026-07-06" },
-]
-
-const MOCK_EXPENSES = [
-    { id: 1, vehicle_id: 1, vehicle_reg: "GJO1UB4521", category: "Toll", description: "Highway toll", amount: 120, date: "2026-07-05" },
-    { id: 2, vehicle_id: 2, vehicle_reg: "GJO1UB9981", category: "Toll", description: "Expressway toll", amount: 340, date: "2026-07-06" },
-    { id: 3, vehicle_id: 2, vehicle_reg: "GJO1UB9981", category: "Parking", description: "Terminal parking", amount: 150, date: "2026-07-06" },
-    { id: 4, vehicle_id: 2, vehicle_reg: "GJO1UB9981", category: "Maintenance", description: "Emergency repair", amount: 18000, date: "2026-07-04" },
-]
-
 export default function Fuel() {
-    const [fuelLogs, setFuelLogs] = useState(MOCK_FUEL_LOGS)
-    const [expenses, setExpenses] = useState(MOCK_EXPENSES)
+    const [fuelLogs, setFuelLogs] = useState([])
+    const [expenses, setExpenses] = useState([])
+    const [vehicles, setVehicles] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     const [isFuelOpen, setIsFuelOpen] = useState(false)
     const [isExpenseOpen, setIsExpenseOpen] = useState(false)
 
     // Fuel form states
-    const [fuelVehicle, setFuelVehicle] = useState("GJO1UB4521")
+    const [fuelVehicle, setFuelVehicle] = useState("")
     const [fuelDate, setFuelDate] = useState("")
     const [fuelLiters, setFuelLiters] = useState("")
     const [fuelCost, setFuelCost] = useState("")
     const [fuelStation, setFuelStation] = useState("")
 
     // Expense form states
-    const [expVehicle, setExpVehicle] = useState("GJO1UB4521")
+    const [expVehicle, setExpVehicle] = useState("")
     const [expCategory, setExpCategory] = useState("Toll")
     const [expDescription, setExpDescription] = useState("")
     const [expAmount, setExpAmount] = useState("")
@@ -61,11 +50,23 @@ export default function Fuel() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [fuelData, expenseData] = await Promise.allSettled([getFuelLogs(), getExpenses()])
+                const [fuelData, expenseData, vehiclesData] = await Promise.allSettled([
+                    getFuelLogs(),
+                    getExpenses(),
+                    getVehicles()
+                ])
                 if (fuelData.status === 'fulfilled' && Array.isArray(fuelData.value)) setFuelLogs(fuelData.value)
                 if (expenseData.status === 'fulfilled' && Array.isArray(expenseData.value)) setExpenses(expenseData.value)
+                if (vehiclesData.status === 'fulfilled' && Array.isArray(vehiclesData.value)) {
+                    setVehicles(vehiclesData.value)
+                    if (vehiclesData.value.length > 0) {
+                        const firstReg = vehiclesData.value[0].registration_number
+                        setFuelVehicle(firstReg)
+                        setExpVehicle(firstReg)
+                    }
+                }
             } catch {
-                // Backend not available — keep mock data
+                console.error("Failed to fetch fuel/expense data")
             } finally {
                 setIsLoading(false)
             }
@@ -77,34 +78,58 @@ export default function Fuel() {
         e.preventDefault()
         if (!fuelVehicle || !fuelDate || !fuelLiters || !fuelCost) return
 
-        const payload = { vehicle_reg: fuelVehicle, date: fuelDate, liters: Number(fuelLiters), fuel_cost: Number(fuelCost), fuel_station: fuelStation.trim() }
+        const selectedVehicle = vehicles.find(v => v.registration_number === fuelVehicle)
+        const payload = { 
+            vehicle_id: selectedVehicle ? selectedVehicle.id : null,
+            vehicle_reg: fuelVehicle, 
+            date: fuelDate, 
+            liters: Number(fuelLiters), 
+            fuel_cost: Number(fuelCost), 
+            fuel_station: fuelStation.trim() 
+        }
 
         try {
             const created = await createFuelLog(payload)
             setFuelLogs([created, ...fuelLogs])
+            setIsFuelOpen(false)
+            setFuelDate(""); setFuelLiters(""); setFuelCost(""); setFuelStation("")
+            if (vehicles.length > 0) {
+                setFuelVehicle(vehicles[0].registration_number)
+            } else {
+                setFuelVehicle("")
+            }
         } catch {
-            setFuelLogs([{ id: Date.now(), ...payload }, ...fuelLogs])
+            alert("Failed to save fuel log. Please check vehicle registration.")
         }
-
-        setIsFuelOpen(false)
-        setFuelVehicle("GJO1UB4521"); setFuelDate(""); setFuelLiters(""); setFuelCost(""); setFuelStation("")
     }
 
     const handleExpenseSave = async (e) => {
         e.preventDefault()
         if (!expVehicle || !expCategory || !expAmount || !expDate) return
 
-        const payload = { vehicle_reg: expVehicle, category: expCategory, description: expDescription.trim(), amount: Number(expAmount), date: expDate }
+        const selectedVehicle = vehicles.find(v => v.registration_number === expVehicle)
+        const payload = { 
+            vehicle_id: selectedVehicle ? selectedVehicle.id : null,
+            vehicle_reg: expVehicle, 
+            category: expCategory, 
+            description: expDescription.trim(), 
+            amount: Number(expAmount), 
+            date: expDate 
+        }
 
         try {
             const created = await createExpense(payload)
             setExpenses([created, ...expenses])
+            setIsExpenseOpen(false)
+            setExpCategory("Toll"); setExpDescription(""); setExpAmount(""); setExpDate("")
+            if (vehicles.length > 0) {
+                setExpVehicle(vehicles[0].registration_number)
+            } else {
+                setExpVehicle("")
+            }
         } catch {
-            setExpenses([{ id: Date.now(), ...payload }, ...expenses])
+            alert("Failed to save expense. Please check vehicle registration.")
         }
-
-        setIsExpenseOpen(false)
-        setExpVehicle("GJO1UB4521"); setExpCategory("Toll"); setExpDescription(""); setExpAmount(""); setExpDate("")
     }
 
     return (
@@ -118,9 +143,11 @@ export default function Fuel() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all-vehicles">Vehicle: All</SelectItem>
-                            <SelectItem value="GJO1UB4521">GJO1UB4521</SelectItem>
-                            <SelectItem value="GJO1UB9981">GJO1UB9981</SelectItem>
-                            <SelectItem value="GJO1UB1120">GJO1UB1120</SelectItem>
+                            {vehicles.map((v) => (
+                                <SelectItem key={v.id} value={v.registration_number}>
+                                    {v.registration_number}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
 
@@ -223,11 +250,13 @@ export default function Fuel() {
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</label>
                                 <Select onValueChange={setFuelVehicle} value={fuelVehicle}>
-                                    <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="GJO1UB4521">GJO1UB4521</SelectItem>
-                                        <SelectItem value="GJO1UB9981">GJO1UB9981</SelectItem>
-                                        <SelectItem value="GJO1UB1120">GJO1UB1120</SelectItem>
+                                        {vehicles.map((v) => (
+                                            <SelectItem key={v.id} value={v.registration_number}>
+                                                {v.registration_number}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -270,11 +299,13 @@ export default function Fuel() {
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</label>
                                     <Select onValueChange={setExpVehicle} value={expVehicle}>
-                                        <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="bg-background border-border h-9 text-xs"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="GJO1UB4521">GJO1UB4521</SelectItem>
-                                            <SelectItem value="GJO1UB9981">GJO1UB9981</SelectItem>
-                                            <SelectItem value="GJO1UB1120">GJO1UB1120</SelectItem>
+                                            {vehicles.map((v) => (
+                                                <SelectItem key={v.id} value={v.registration_number}>
+                                                    {v.registration_number}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
