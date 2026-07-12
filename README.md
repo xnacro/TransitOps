@@ -1,96 +1,131 @@
 # TransitOps
 
-TransitOps is a full-stack web application designed to streamline the management of transportation operations through a centralized and efficient platform. It enables organizations to manage trips, vehicles, drivers, routes, bookings, maintenance, and operational workflows while providing real-time visibility and role-based access control.
+A modern Fleet and Transportation Management System built for the Odoo Hackathon. TransitOps centralizes transportation operations by providing a single platform to manage vehicles, drivers, routes, trips, bookings, maintenance, expenses, and analytics.
 
-The project follows a scalable MERN architecture with a clean separation between frontend and backend services, making it suitable for enterprise-level transportation management systems.
+The application follows a scalable full-stack architecture with a clean separation between frontend and backend, making it suitable for enterprise transportation management.
+
+Note: All the credentials are currently auto-filled for the demo. We will remove that once the evaluation is finished.
+
+---
+
+## Project Demo
+
+Video Demonstration
+
+https://youtu.be/By-MtoYcXaM
+
+Try it out!
+https://transitops-frontend-phi.vercel.app/
 
 ---
 
 ## Features
 
 ### Authentication
-- Secure Login & Signup
+
+- Secure Login & Registration
 - JWT Authentication
-- Role-Based Access Control
-- Password Encryption
+- Role-Based Access Control (RBAC)
+- Password Encryption using bcrypt
+- Protected Routes
 - Session Management
 
 ### Dashboard
+
 - Operational Overview
+- Fleet Statistics
 - Active Trips
-- Available Vehicles
-- Driver Status
-- Booking Summary
-- Key Performance Indicators
-
-### Trip Management
-- Create Trips
-- Update Trips
-- Cancel Trips
-- Trip Scheduling
-- Trip History
-
-### Vehicle Management
-- Vehicle Registration
+- Driver Availability
 - Vehicle Availability
+- Recent Activities
+- Performance Metrics
+
+### Fleet Management
+
+- Vehicle Registration
 - Vehicle Status Tracking
-- Maintenance Records
+- Vehicle Availability
+- Fleet Monitoring
 
 ### Driver Management
+
 - Driver Registration
 - Driver Assignment
+- License Management
 - Driver Availability
-- License Information
 
 ### Route Management
+
 - Route Creation
-- Stop Management
+- Route Assignment
 - Distance Tracking
-- Route Optimization
+- Stop Management
+
+### Trip Management
+
+- Create Trips
+- Schedule Trips
+- Assign Drivers
+- Assign Vehicles
+- Trip History
+- Trip Status Management
 
 ### Booking Management
+
 - Create Bookings
+- Booking Validation
 - Booking Status
 - Booking History
-- Booking Validation
 
 ### Maintenance Management
-- Maintenance Requests
-- Service History
-- Vehicle Maintenance Scheduling
 
-### Reports
-- Trip Reports
-- Vehicle Reports
+- Maintenance Scheduling
+- Service Records
+- Maintenance Requests
+- Vehicle Service History
+
+### Expense Management
+
+- Fuel Expenses
+- Operational Expenses
+- Maintenance Costs
+- Expense Tracking
+
+### Reports & Analytics
+
+- Fleet Reports
 - Driver Reports
-- Booking Analytics
-- Operational Statistics
+- Trip Analytics
+- Booking Reports
+- Operational Insights
 
 ---
 
-## Tech Stack
+## Technology Stack
 
 ### Frontend
+
 - React.js
 - Vite
 - Tailwind CSS
 - React Router
 - Axios
-- Shadcn UI
+- shadcn/ui
 
 ### Backend
+
 - Node.js
 - Express.js
 - PostgreSQL
-- JWT
-- Bcrypt
+- JWT Authentication
+- bcrypt
 
 ---
 
 ## Project Structure
 
 ```text
-transitops/
+TransitOps/
 │
 ├── frontend/
 │   ├── public/
@@ -113,7 +148,6 @@ transitops/
     │   ├── migrations/
     │   ├── models/
     │   ├── routes/
-    │   ├── seeders/
     │   ├── services/
     │   ├── sockets/
     │   ├── uploads/
@@ -121,7 +155,6 @@ transitops/
     │   ├── validators/
     │   ├── app.js
     │   └── server.js
-    │
     ├── package.json
     └── .env
 ```
@@ -130,23 +163,26 @@ transitops/
 
 ## Installation
 
-### Backend Setup
+### Clone the Repository
+
+```bash
+git clone <repository-url>
+cd TransitOps
+```
+
+### Backend
 
 ```bash
 cd backend
-
 npm install
-
 npm run dev
 ```
 
-### Frontend Setup
+### Frontend
 
 ```bash
 cd frontend
-
 npm install
-
 npm run dev
 ```
 
@@ -154,52 +190,70 @@ npm run dev
 
 ## Application Workflow
 
-```
+```text
 Authentication
-        │
-        ▼
+      │
+      ▼
 Dashboard
-        │
-        ▼
-Vehicle Management
-        │
-        ▼
+      │
+      ▼
+Fleet Management
+      │
+      ▼
 Driver Management
-        │
-        ▼
+      │
+      ▼
 Route Management
-        │
-        ▼
+      │
+      ▼
 Trip Management
-        │
-        ▼
+      │
+      ▼
 Booking Management
-        │
-        ▼
+      │
+      ▼
 Maintenance
-        │
-        ▼
+      │
+      ▼
 Reports & Analytics
 ```
 
 ---
 
-## Upcoming Features
+## Future Enhancements
 
 - Live Vehicle Tracking
 - Google Maps Integration
 - GPS Support
+- AI-based Route Optimization
+- Predictive Maintenance
 - QR Code Ticketing
 - Push Notifications
 - Email Notifications
 - WebSocket-based Live Updates
-- AI-based Route Optimization
-- Predictive Vehicle Maintenance
 - Mobile Application
 
 ---
 
+## Team
+
+### Team Leader
+
+Prince Kumar
+
+### Team Members
+
+- Ayush
+- Jatin Vishwakarma
+
+---
+
+## Demo Video
+
+https://youtu.be/By-MtoYcXaM
+
+---
 
 ## License
 
-This project is developed for educational and hackathon purposes.
+This project was developed for the Odoo Hackathon and educational purposes.
