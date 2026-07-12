@@ -14,6 +14,9 @@ Video Demonstration
 
 https://youtu.be/By-MtoYcXaM
 
+Try it out!
+https://transitops-frontend-phi.vercel.app/
+
 ---
 
 ## Features
