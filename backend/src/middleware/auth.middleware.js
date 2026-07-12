@@ -1,10 +1,5 @@
 import { verifyToken } from "../utils/jwt.js";
 
-/**
- * Authentication middleware.
- * Reads the Authorization header, verifies the JWT,
- * and attaches the decoded payload to req.user.
- */
 const authenticate = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -21,7 +16,6 @@ const authenticate = (req, res, next) => {
 
         const decoded = verifyToken(token);
 
-        // Attach decoded payload (id, role_id) to the request
         req.user = decoded;
 
         next();

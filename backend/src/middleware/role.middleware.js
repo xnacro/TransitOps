@@ -1,24 +1,10 @@
 import Role from "../models/role.model.js";
 
-/**
- * Role-based access control middleware factory.
- *
- * Usage:
- *   authorize("Fleet Manager")
- *   authorize("Fleet Manager", "Safety Officer")
- *
- * Must be used AFTER the authenticate middleware so that
- * req.user.role_id is available.
- *
- * @param  {...string} allowedRoles - Role names that are permitted
- * @returns {Function} Express middleware
- */
 const authorize = (...allowedRoles) => {
     return async (req, res, next) => {
         try {
             const { role_id } = req.user;
 
-            // Fetch the role name from the database
             const role = await Role.findById(role_id);
 
             if (!role) {
@@ -37,7 +23,6 @@ const authorize = (...allowedRoles) => {
                 });
             }
 
-            // Attach role name for downstream convenience
             req.user.role_name = role.name;
 
             next();
