@@ -5,15 +5,11 @@ import {
     Truck,
     Users,
     Route,
-    Wrench,
-    Fuel,
-    DollarSign,
     Sun,
     Moon,
     ChevronLeft,
     ChevronRight,
-    LogOut,
-    Settings
+    LogOut
 } from 'lucide-react'
 
 export default function MainLayout({ children, activePage, setActivePage, user, onLogout }) {
@@ -21,15 +17,18 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
     const [isCollapsed, setIsCollapsed] = useState(false)
 
     const roleNavs = {
-        'admin': ['dashboard'],
-        'fleet-manager': ['dashboard'],
-        'dispatcher': ['dashboard'],
-        'safety-officer': ['dashboard'],
+        'admin': ['dashboard', 'vehicles', 'drivers', 'trips'],
+        'fleet-manager': ['vehicles'],
+        'dispatcher': ['dashboard', 'trips'],
+        'safety-officer': ['drivers'],
         'financial-analyst': ['dashboard']
     }
 
     const allNavItems = [
         { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
+        { id: 'vehicles', name: 'Vehicles', icon: Truck },
+        { id: 'drivers', name: 'Drivers', icon: Users },
+        { id: 'trips', name: 'Trips/Dispatch', icon: Route },
     ]
 
     // Filter nav items based on user role
@@ -110,11 +109,7 @@ export default function MainLayout({ children, activePage, setActivePage, user, 
                                 'dashboard': 'Dashboard',
                                 'vehicles': 'Vehicle Registry',
                                 'drivers': 'Drivers',
-                                'trips': 'Trips/Dispatch',
-                                'maintenance': 'Maintenance',
-                                'fuel': 'Fuel & Expenses',
-                                'reports': 'Reports',
-                                'settings': 'Settings & RBAC'
+                                'trips': 'Trips/Dispatch'
                             };
                             return pageTitles[activePage] || activePage;
                         })()}
