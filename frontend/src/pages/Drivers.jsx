@@ -14,16 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, X } from 'lucide-react'
 import { getDrivers, createDriver } from '@/api/driver.service'
 
-const MOCK_DRIVERS = [
-    { id: 1, name: "Alex Johnson", phone: "9876543210", email: "alex@transitops.com", license_number: "DL-A-12345", license_expiry: "2026-10-15", status: "Available" },
-    { id: 2, name: "Maria Garcia", phone: "9876543211", email: "maria@transitops.com", license_number: "DL-B-67890", license_expiry: "2027-02-20", status: "On Trip" },
-    { id: 3, name: "James Smith", phone: "9876543212", email: "james@transitops.com", license_number: "DL-A-11111", license_expiry: "2026-08-01", status: "Available" },
-    { id: 4, name: "Linda Chen", phone: "9876543213", email: "linda@transitops.com", license_number: "DL-A-22222", license_expiry: "2026-05-11", status: "Available" },
-    { id: 5, name: "Robert Taylor", phone: "9876543214", email: "robert@transitops.com", license_number: "DL-C-33333", license_expiry: "2025-12-01", status: "Suspended" },
-]
-
 export default function Drivers() {
-    const [drivers, setDrivers] = useState(MOCK_DRIVERS)
+    const [drivers, setDrivers] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     const [isOpen, setIsOpen] = useState(false)
@@ -40,7 +32,7 @@ export default function Drivers() {
                 const data = await getDrivers()
                 if (data && Array.isArray(data)) setDrivers(data)
             } catch {
-                // Backend not available — keep mock data
+                console.error("Failed to fetch drivers")
             } finally {
                 setIsLoading(false)
             }
@@ -64,12 +56,11 @@ export default function Drivers() {
         try {
             const created = await createDriver(payload)
             setDrivers([created, ...drivers])
+            setIsOpen(false)
+            setName(""); setPhone(""); setEmail(""); setLicenseNumber(""); setLicenseExpiry(""); setStatus("Available")
         } catch {
-            setDrivers([{ id: Date.now(), ...payload }, ...drivers])
+            alert("Failed to save driver. Email or license number might already be taken.")
         }
-
-        setIsOpen(false)
-        setName(""); setPhone(""); setEmail(""); setLicenseNumber(""); setLicenseExpiry(""); setStatus("Available")
     }
 
     const getStatusColor = (status) => {

@@ -6,6 +6,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle, ShieldAlert, KeyRound, Mail, UserCheck, Truck, Route, Users, DollarSign, Sun, Moon } from 'lucide-react'
 import { useTheme } from '../components/theme-provider'
 
+import { loginUser } from '../api/auth.service'
+
 export default function Login({ onLogin }) {
   const { theme, setTheme } = useTheme()
   const [email, setEmail] = useState('')
@@ -14,27 +16,51 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState(null)
   const [attempts, setAttempts] = useState(0)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!email || !password || !role) {
-      setError("Please fill in all fields and select a role.")
+    if (!email || !password) {
+      setError("Please fill in email and password fields.")
       return
     }
 
-    // Simulating invalid credential check for demo
-    if (password === 'wrong') {
-      const newAttempts = attempts + 1
-      setAttempts(newAttempts)
-      if (newAttempts >= 5) {
-        setError("Account locked after 5 failed attempts.")
-      } else {
-        setError("Invalid credentials. Please try again.")
+    try {
+      setError(null)
+      // Attempt backend authentication
+      const response = await loginUser({ email, password })
+      if (response && response.data) {
+        const { user, token } = response.data
+        
+        // Map backend roles to frontend role names
+        const roleMapping = {
+          1: 'fleet-manager',
+          2: 'driver',
+          3: 'safety-officer',
+          4: 'financial-analyst'
+        }
+        
+        const mappedRole = roleMapping[user.role_id] || 'fleet-manager'
+        const loggedInUser = { ...user, role: mappedRole }
+
+        localStorage.setItem("token", token)
+        localStorage.setItem("user", JSON.stringify(loggedInUser))
+        onLogin(loggedInUser)
+        return
       }
-      return
+    } catch (apiError) {
+      console.warn("Backend auth failed or unavailable, checking mock bypass", apiError)
+      
+      // Fallback: If mock login details are provided, log in without token (uses mock data fallback in pages)
+      if (role) {
+        setError(null)
+        const mockUser = { email, role }
+        localStorage.setItem("user", JSON.stringify(mockUser))
+        onLogin(mockUser)
+        return
+      } else {
+        setError(apiError.response?.data?.message || "Invalid credentials or backend unavailable.")
+        return
+      }
     }
-
-    setError(null)
-    onLogin({ email, role })
   }
 
   return (
@@ -66,35 +92,35 @@ export default function Login({ onLogin }) {
 
             <div className="grid grid-cols-1 gap-3">
               {[
-                { 
-                  name: "Fleet Manager", 
-                  desc: "Vehicle profiles, diagnostics, and shop schedules.", 
-                  icon: Truck, 
-                  color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" 
+                {
+                  name: "Fleet Manager",
+                  desc: "Vehicle profiles, diagnostics, and shop schedules.",
+                  icon: Truck,
+                  color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
                 },
-                { 
-                  name: "Dispatcher", 
-                  desc: "Real-time trip optimization and live operational maps.", 
-                  icon: Route, 
-                  color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" 
+                {
+                  name: "Driver",
+                  desc: "Assigned trips, route navigation, and trip status updates.",
+                  icon: Route,
+                  color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
                 },
-                { 
-                  name: "Safety Officer", 
-                  desc: "Driver licenses, safety metrics, and compliance checks.", 
-                  icon: Users, 
-                  color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" 
+                {
+                  name: "Safety Officer",
+                  desc: "Driver licenses, safety metrics, and compliance checks.",
+                  icon: Users,
+                  color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
                 },
-                { 
-                  name: "Financial Analyst", 
-                  desc: "Fuel expenses, toll logs, and monthly cost reporting.", 
-                  icon: DollarSign, 
-                  color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" 
+                {
+                  name: "Financial Analyst",
+                  desc: "Fuel expenses, toll logs, and monthly cost reporting.",
+                  icon: DollarSign,
+                  color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                 }
               ].map((r, idx) => {
                 const Icon = r.icon
                 return (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="flex items-center space-x-3.5 p-3 rounded-xl bg-white/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 dark:bg-zinc-900/40 dark:border-zinc-800/60 dark:hover:bg-zinc-900/60 dark:hover:border-zinc-700/60 transition-all duration-300"
                   >
                     <div className={`p-2 rounded-lg border shrink-0 ${r.color}`}>
@@ -184,7 +210,7 @@ export default function Login({ onLogin }) {
                 </SelectTrigger>
                 <SelectContent className="bg-white border-slate-200 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
                   <SelectItem value="fleet-manager">Fleet Manager</SelectItem>
-                  <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                  <SelectItem value="driver">Driver</SelectItem>
                   <SelectItem value="safety-officer">Safety Officer</SelectItem>
                   <SelectItem value="financial-analyst">Financial Analyst</SelectItem>
                 </SelectContent>
@@ -221,7 +247,7 @@ export default function Login({ onLogin }) {
                 <p className="mt-0.5 text-[9px]">• Fleet, Maintenance</p>
               </div>
               <div>
-                <span className="font-semibold text-zinc-700 dark:text-zinc-400">Dispatcher</span>
+                <span className="font-semibold text-zinc-700 dark:text-zinc-400">Driver</span>
                 <p className="mt-0.5 text-[9px]">• Dashboard, Trips</p>
               </div>
               <div>

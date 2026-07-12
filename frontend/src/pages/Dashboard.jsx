@@ -14,57 +14,41 @@ import {
 import { Truck, Users, Route, Wrench, Percent, AlertTriangle, Search } from 'lucide-react'
 import { getDashboardStats } from '@/api/dashboard.service'
 
-// Fallback mock data used when the backend is not available
-const MOCK_STATS = [
-    { title: "Active Vehicles", value: "53", icon: Truck, color: "text-blue-500" },
-    { title: "Available Vehicles", value: "42", icon: Truck, color: "text-green-500" },
-    { title: "Vehicles in Maintenance", value: "05", icon: Wrench, color: "text-amber-500" },
-    { title: "Active Trips", value: "18", icon: Route, color: "text-indigo-500" },
-    { title: "Problem Trips", value: "09", icon: AlertTriangle, color: "text-red-500" },
-    { title: "Drivers On Duty", value: "26", icon: Users, color: "text-purple-500" },
-    { title: "Fleet Utilization", value: "81%", icon: Percent, color: "text-emerald-500" },
-]
-
-const MOCK_RECENT_TRIPS = [
-    { id: "TR001", vehicle: "VAN-05", driver: "Alex", status: "On Trip", statusColor: "bg-green-500/15 text-green-500 border-green-500/25", eta: "45 min" },
-    { id: "TR002", vehicle: "TRK-12", driver: "Tom", status: "Completed", statusColor: "bg-yellow-500/15 text-yellow-500 border-yellow-500/25", eta: "—" },
-    { id: "TR003", vehicle: "ATAT-09", driver: "Priya", status: "Dispatched", statusColor: "bg-blue-500/15 text-blue-500 border-blue-500/25", eta: "In 10m" },
-    { id: "TR004", vehicle: "—", driver: "—", status: "Standby", statusColor: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25", eta: "Awaiting vehicle" },
-]
-
-const MOCK_VEHICLE_STATUS = [
-    { label: "Available", count: 42, color: "bg-green-500", pct: 80 },
-    { label: "On Trip", count: 18, color: "bg-blue-500", pct: 55 },
-    { label: "In Shop", count: 5, color: "bg-amber-500", pct: 15 },
-    { label: "Retired", count: 2, color: "bg-red-500", pct: 6 },
+const DEFAULT_STATS = [
+    { title: "Active Vehicles", value: "0", icon: Truck, color: "text-blue-500" },
+    { title: "Available Vehicles", value: "0", icon: Truck, color: "text-green-500" },
+    { title: "Vehicles in Maintenance", value: "0", icon: Wrench, color: "text-amber-500" },
+    { title: "Active Trips", value: "0", icon: Route, color: "text-indigo-500" },
+    { title: "Problem Trips", value: "0", icon: AlertTriangle, color: "text-red-500" },
+    { title: "Drivers On Duty", value: "0", icon: Users, color: "text-purple-500" },
+    { title: "Fleet Utilization", value: "0%", icon: Percent, color: "text-emerald-500" },
 ]
 
 export default function Dashboard() {
-    const [stats, setStats] = useState(MOCK_STATS)
-    const [recentTrips, setRecentTrips] = useState(MOCK_RECENT_TRIPS)
-    const [vehicleStatusData, setVehicleStatusData] = useState(MOCK_VEHICLE_STATUS)
+    const [stats, setStats] = useState(DEFAULT_STATS)
+    const [recentTrips, setRecentTrips] = useState([])
+    const [vehicleStatusData, setVehicleStatusData] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const data = await getDashboardStats()
-                // Map API response to stats format if backend returns data
                 if (data) {
                     setStats([
-                        { title: "Active Vehicles", value: String(data.activeVehicles ?? 53), icon: Truck, color: "text-blue-500" },
-                        { title: "Available Vehicles", value: String(data.availableVehicles ?? 42), icon: Truck, color: "text-green-500" },
-                        { title: "Vehicles in Maintenance", value: String(data.inMaintenance ?? 5).padStart(2, '0'), icon: Wrench, color: "text-amber-500" },
-                        { title: "Active Trips", value: String(data.activeTrips ?? 18), icon: Route, color: "text-indigo-500" },
-                        { title: "Problem Trips", value: String(data.problemTrips ?? 9).padStart(2, '0'), icon: AlertTriangle, color: "text-red-500" },
-                        { title: "Drivers On Duty", value: String(data.driversOnDuty ?? 26), icon: Users, color: "text-purple-500" },
-                        { title: "Fleet Utilization", value: `${data.fleetUtilization ?? 81}%`, icon: Percent, color: "text-emerald-500" },
+                        { title: "Active Vehicles", value: String(data.activeVehicles ?? 0), icon: Truck, color: "text-blue-500" },
+                        { title: "Available Vehicles", value: String(data.availableVehicles ?? 0), icon: Truck, color: "text-green-500" },
+                        { title: "Vehicles in Maintenance", value: String(data.inMaintenance ?? 0).padStart(2, '0'), icon: Wrench, color: "text-amber-500" },
+                        { title: "Active Trips", value: String(data.activeTrips ?? 0), icon: Route, color: "text-indigo-500" },
+                        { title: "Problem Trips", value: String(data.problemTrips ?? 0).padStart(2, '0'), icon: AlertTriangle, color: "text-red-500" },
+                        { title: "Drivers On Duty", value: String(data.driversOnDuty ?? 0), icon: Users, color: "text-purple-500" },
+                        { title: "Fleet Utilization", value: `${data.fleetUtilization ?? 0}%`, icon: Percent, color: "text-emerald-500" },
                     ])
                     if (data.vehicleStatus) setVehicleStatusData(data.vehicleStatus)
                     if (data.recentTrips) setRecentTrips(data.recentTrips)
                 }
             } catch {
-                // Backend not available — keep mock data
+                console.error("Failed to fetch dashboard stats")
             } finally {
                 setIsLoading(false)
             }
