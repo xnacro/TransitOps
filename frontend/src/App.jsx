@@ -57,15 +57,15 @@ function App() {
     }
   }
 
-  if (!user) {
-    return <Login onLogin={handleLogin} />
-  }
-
   return (
     <ThemeProvider defaultTheme="dark" storageKey="transitops-ui-theme">
-      <MainLayout activePage={activePage} setActivePage={setActivePage} user={user} onLogout={handleLogout}>
-        {renderPage()}
-      </MainLayout>
+      {!user ? (
+        <Login onLogin={handleLogin} />
+      ) : (
+        <MainLayout activePage={activePage} setActivePage={setActivePage} user={user} onLogout={handleLogout}>
+          {renderPage()}
+        </MainLayout>
+      )}
     </ThemeProvider>
   )
 }
