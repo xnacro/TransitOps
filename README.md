@@ -4,6 +4,8 @@ A modern Fleet and Transportation Management System built for the Odoo Hackathon
 
 The application follows a scalable full-stack architecture with a clean separation between frontend and backend, making it suitable for enterprise transportation management.
 
+Note: All the credentials are currently auto-filled for the demo. We will remove that once the evaluation is finished.
+
 ---
 
 ## Project Demo
