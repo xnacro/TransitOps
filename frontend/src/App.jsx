@@ -8,6 +8,8 @@ import Drivers from './pages/Drivers'
 import Trips from './pages/Trips'
 import Maintenance from './pages/Maintenance'
 import Fuel from './pages/Fuel'
+import Reports from './pages/Reports'
+import Settings from './pages/Settings'
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -16,13 +18,14 @@ function App() {
     if (window.location.pathname === '/dashboard' || searchParams.get('bypass') === 'true') {
       return { email: 'admin@transitops.com', role: 'admin' }
     }
-    return null
+    const savedUser = localStorage.getItem("user")
+    return savedUser ? JSON.parse(savedUser) : null
   })
   const [activePage, setActivePage] = useState('dashboard')
 
   const roleDefaults = {
     'fleet-manager': 'vehicles',
-    'dispatcher': 'dashboard',
+    'driver': 'dashboard',
     'safety-officer': 'drivers',
     'financial-analyst': 'fuel'
   }
@@ -35,6 +38,8 @@ function App() {
 
   const handleLogout = () => {
     window.history.pushState({}, '', '/')
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
     setUser(null)
   }
 
@@ -46,6 +51,8 @@ function App() {
       case 'trips': return <Trips />
       case 'maintenance': return <Maintenance />
       case 'fuel': return <Fuel />
+      case 'reports': return <Reports />
+      case 'settings': return <Settings />
       default:
         return (
           <div className="border-2 border-dashed border-border rounded-xl p-8 flex items-center justify-center h-full text-muted-foreground">
